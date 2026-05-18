@@ -4,6 +4,7 @@ import com.fintrack.entity.Transaction.TransactionType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -15,6 +16,7 @@ public class TransactionDto {
     @Data
     public static class Request {
         @NotBlank(message = "Description is required")
+        @Size(max = 255, message = "Description must be 255 characters or fewer")
         private String description;
 
         @NotNull(message = "Amount is required")
@@ -25,11 +27,13 @@ public class TransactionDto {
         private TransactionType type;
 
         @NotBlank(message = "Category is required")
+        @Size(max = 100, message = "Category must be 100 characters or fewer")
         private String category;
 
         @NotNull(message = "Date is required")
         private LocalDate date;
 
+        @Size(max = 500, message = "Notes must be 500 characters or fewer")
         private String notes;
     }
 

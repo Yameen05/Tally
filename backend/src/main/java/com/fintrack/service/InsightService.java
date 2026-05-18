@@ -1,24 +1,25 @@
 package com.fintrack.service;
 
 import com.fintrack.dto.BudgetDto;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import jakarta.annotation.PostConstruct;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class InsightService {
 
     private final WebClient.Builder webClientBuilder;
     private final BudgetService budgetService;
-    private final ObjectMapper objectMapper;
+
+    private WebClient webClient;
 
     @Value("${openai.api.key}")
     private String openAiKey;
@@ -28,6 +29,16 @@ public class InsightService {
 
     @Value("${openai.model}")
     private String model;
+
+    public InsightService(WebClient.Builder webClientBuilder, BudgetService budgetService) {
+        this.webClientBuilder = webClientBuilder;
+        this.budgetService = budgetService;
+    }
+
+    @PostConstruct
+    private void init() {
+        this.webClient = webClientBuilder.build();
+    }
 
     public String getSpendingInsights(Long userId, int month, int year) {
         BudgetDto.MonthlySummary summary = budgetService.getMonthlySummary(userId, month, year);
@@ -47,25 +58,38 @@ public class InsightService {
                 "temperature", 0.7
             );
 
-            WebClient client = webClientBuilder.build();
-
-            Map<String, Object> response = client.post()
+            Map<String, Object> response = webClient.post()
                     .uri(openAiUrl)
                     .header("Authorization", "Bearer " + openAiKey)
                     .header("Content-Type", "application/json")
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(Map.class)
-                    .block();
+                    .block(Duration.ofSeconds(30));
+
+            if (response == null) {
+                log.warn("OpenAI returned null response");
+                return "Unable to generate insights at this time. Please try again later.";
+            }
 
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> choices = (List<Map<String, Object>>) response.get("choices");
+            if (choices == null || choices.isEmpty()) {
+                log.warn("OpenAI returned empty choices");
+                return "Unable to generate insights at this time. Please try again later.";
+            }
+
             @SuppressWarnings("unchecked")
             Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
+            if (message == null || !message.containsKey("content")) {
+                log.warn("OpenAI response missing message content");
+                return "Unable to generate insights at this time. Please try again later.";
+            }
+
             return (String) message.get("content");
 
         } catch (Exception e) {
-            log.error("OpenAI API error: {}", e.getMessage());
+            log.error("OpenAI API error: {}", e.getClass().getSimpleName());
             return "Unable to generate insights at this time. Please try again later.";
         }
     }
