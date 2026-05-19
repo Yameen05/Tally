@@ -7,7 +7,10 @@ import com.fintrack.entity.User;
 import com.fintrack.repository.BudgetRepository;
 import com.fintrack.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -22,6 +25,7 @@ public class BudgetService {
     private final BudgetRepository budgetRepository;
     private final TransactionRepository transactionRepository;
 
+    @Transactional
     public BudgetDto.Response createOrUpdate(BudgetDto.Request request, User user) {
         Budget budget = budgetRepository
                 .findByUserIdAndCategoryAndMonthAndYear(
@@ -77,12 +81,13 @@ public class BudgetService {
                 .build();
     }
 
+    @Transactional
     public void delete(Long id, Long userId) {
         Budget budget = budgetRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Budget not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Budget not found"));
 
         if (!budget.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Unauthorized");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
         }
 
         budgetRepository.delete(budget);
@@ -94,14 +99,23 @@ public class BudgetService {
 
         if (spent == null) spent = BigDecimal.ZERO;
 
-        BigDecimal remaining = budget.getLimitAmount().subtract(spent);
-        double percentage = spent.divide(budget.getLimitAmount(), 4, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100)).doubleValue();
+        BigDecimal limit = budget.getLimitAmount();
+        BigDecimal remaining = limit.subtract(spent);
+
+        double percentage = 0.0;
+        if (limit.compareTo(BigDecimal.ZERO) > 0) {
+            percentage = Math.min(
+                spent.divide(limit, 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100))
+                    .doubleValue(),
+                100.0
+            );
+        }
 
         return BudgetDto.Response.builder()
                 .id(budget.getId())
                 .category(budget.getCategory())
-                .limitAmount(budget.getLimitAmount())
+                .limitAmount(limit)
                 .spentAmount(spent)
                 .remaining(remaining)
                 .percentageUsed(percentage)

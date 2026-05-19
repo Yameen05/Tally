@@ -47,6 +47,20 @@ public class Transaction {
 
     private String notes;
 
+    // Plaid integration fields (null for manually-entered transactions)
+    @Column(name = "plaid_transaction_id", unique = true)
+    private String plaidTransactionId;
+
+    @Column(name = "plaid_account_id")
+    private String plaidAccountId;
+
+    @Column(name = "merchant_name")
+    private String merchantName;
+
+    @Builder.Default
+    @Column
+    private Boolean pending = false;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;

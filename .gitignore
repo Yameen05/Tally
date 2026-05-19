@@ -1,0 +1,24 @@
+# Build artifacts
+backend/target/
+**/target/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Logs
+*.log
+backend.log
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+*.iml
+
+# Claude Code worktrees and local config
+.claude/
+
+# Env files (NEVER commit real secrets)
+.env
+.env.local

@@ -39,6 +39,26 @@ export interface User {
   token: string;
 }
 
+export interface ConnectedAccount {
+  id: number;
+  accountId: string;
+  name: string;
+  mask: string | null;
+  type: string | null;
+  subtype: string | null;
+  currentBalance: number | null;
+  availableBalance: number | null;
+  currencyCode: string | null;
+}
+
+export interface ConnectedItem {
+  id: number;
+  institutionName: string | null;
+  lastSyncedAt: string | null;
+  syncError: string | null;
+  accounts: ConnectedAccount[];
+}
+
 export const CATEGORIES = [
   'Food', 'Housing', 'Transport', 'Entertainment',
   'Healthcare', 'Shopping', 'Utilities', 'Education',

@@ -8,9 +8,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,6 +21,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/transactions")
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "Transactions", description = "Manage income and expense transactions")
 @SecurityRequirement(name = "bearerAuth")
 public class TransactionController {
@@ -44,8 +48,8 @@ public class TransactionController {
     @GetMapping("/month/{year}/{month}")
     @Operation(summary = "Get transactions for a specific month")
     public ResponseEntity<List<TransactionDto.Response>> getByMonth(
-            @PathVariable int year,
-            @PathVariable int month,
+            @PathVariable @Min(2000) @Max(2100) int year,
+            @PathVariable @Min(1) @Max(12) int month,
             Authentication auth) {
         User user = authService.getCurrentUser(auth.getName());
         return ResponseEntity.ok(transactionService.getByMonth(user.getId(), month, year));
