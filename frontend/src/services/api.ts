@@ -12,7 +12,8 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      localStorage.clear();
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
       window.location.href = '/login';
     }
     return Promise.reject(err);
@@ -47,6 +48,16 @@ export const budgetApi = {
 export const insightApi = {
   getInsights: (year: number, month: number) =>
     api.get(`/insights/${year}/${month}`),
+};
+
+export const plaidApi = {
+  status: () => api.get('/plaid/status'),
+  createLinkToken: () => api.post('/plaid/link-token'),
+  exchange: (publicToken: string, institutionId?: string, institutionName?: string) =>
+    api.post('/plaid/exchange', { publicToken, institutionId, institutionName }),
+  listItems: () => api.get('/plaid/items'),
+  sync: () => api.post('/plaid/sync'),
+  disconnect: (id: number) => api.delete(`/plaid/items/${id}`),
 };
 
 export default api;
