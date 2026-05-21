@@ -79,6 +79,24 @@ public class PlaidController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/webhook")
+    @Operation(summary = "Receive Plaid webhook events", security = {})
+    public ResponseEntity<Void> webhook(@RequestBody Map<String, Object> payload) {
+        String webhookType = (String) payload.get("webhook_type");
+        String webhookCode = (String) payload.get("webhook_code");
+        String itemId = (String) payload.get("item_id");
+
+        if ("TRANSACTIONS".equals(webhookType) && "SYNC_UPDATES_AVAILABLE".equals(webhookCode)
+                && itemId != null) {
+            try {
+                plaidService.syncByPlaidItemId(itemId);
+            } catch (Exception e) {
+                // Log but always return 200 so Plaid does not retry indefinitely
+            }
+        }
+        return ResponseEntity.ok().build();
+    }
+
     // ─── helpers ───
     private PlaidDto.ConnectedItem toDto(PlaidItem item) {
         List<PlaidDto.ConnectedAccount> accounts = (item.getAccounts() == null) ? List.of()

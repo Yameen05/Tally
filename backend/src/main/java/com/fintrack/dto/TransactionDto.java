@@ -50,5 +50,9 @@ public class TransactionDto {
         private LocalDate date;
         private String notes;
         private LocalDateTime createdAt;
+        private String merchantName;
+        private Boolean pending;
+        private String plaidTransactionId;
+        private String plaidAccountId;
     }
 }

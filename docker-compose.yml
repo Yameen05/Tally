@@ -23,7 +23,7 @@ services:
     environment:
       DB_USERNAME: root
       DB_PASSWORD: password
-      JWT_SECRET: fintrack-dev-secret-key-change-in-production
+      JWT_SECRET: ${JWT_SECRET}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       CORS_ORIGINS: http://localhost:3000,http://localhost:80
     depends_on:

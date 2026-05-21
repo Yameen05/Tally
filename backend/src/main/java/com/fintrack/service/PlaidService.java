@@ -172,6 +172,14 @@ public class PlaidService {
     }
 
     @Transactional
+    public void syncByPlaidItemId(String plaidItemId) {
+        PlaidItem item = plaidItemRepository.findByItemId(plaidItemId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Item not found"));
+        String accessToken = encryptionService.decrypt(item.getAccessTokenEncrypted());
+        syncTransactionsInternal(item, accessToken);
+    }
+
+    @Transactional
     public void disconnectItem(Long plaidItemId, Long userId) {
         PlaidItem item = plaidItemRepository.findById(plaidItemId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Item not found"));

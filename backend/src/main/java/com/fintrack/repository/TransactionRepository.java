@@ -2,6 +2,8 @@ package com.fintrack.repository;
 
 import com.fintrack.entity.Transaction;
 import com.fintrack.entity.Transaction.TransactionType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,6 +22,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     void deleteByPlaidTransactionId(String plaidTransactionId);
 
     List<Transaction> findByUserIdOrderByDateDesc(Long userId);
+
+    Page<Transaction> findByUserIdOrderByDateDesc(Long userId, Pageable pageable);
 
     List<Transaction> findByUserIdAndTypeOrderByDateDesc(Long userId, TransactionType type);
 

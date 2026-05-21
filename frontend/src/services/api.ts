@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { TransactionRequest, BudgetRequest, PagedResponse, Transaction } from '../types';
 
 const api = axios.create({ baseURL: '/api' });
 
@@ -28,11 +29,12 @@ export const authApi = {
 };
 
 export const transactionApi = {
-  getAll: () => api.get('/transactions'),
+  getAll: (page = 0, size = 20) =>
+    api.get<PagedResponse<Transaction>>('/transactions', { params: { page, size } }),
   getByMonth: (year: number, month: number) =>
     api.get(`/transactions/month/${year}/${month}`),
-  create: (data: any) => api.post('/transactions', data),
-  update: (id: number, data: any) => api.put(`/transactions/${id}`, data),
+  create: (data: TransactionRequest) => api.post('/transactions', data),
+  update: (id: number, data: TransactionRequest) => api.put(`/transactions/${id}`, data),
   delete: (id: number) => api.delete(`/transactions/${id}`),
 };
 
@@ -41,7 +43,7 @@ export const budgetApi = {
     api.get(`/budgets/month/${year}/${month}`),
   getSummary: (year: number, month: number) =>
     api.get(`/budgets/summary/${year}/${month}`),
-  createOrUpdate: (data: any) => api.post('/budgets', data),
+  createOrUpdate: (data: BudgetRequest) => api.post('/budgets', data),
   delete: (id: number) => api.delete(`/budgets/${id}`),
 };
 

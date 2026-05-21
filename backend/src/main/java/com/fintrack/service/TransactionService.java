@@ -5,6 +5,8 @@ import com.fintrack.entity.Transaction;
 import com.fintrack.entity.User;
 import com.fintrack.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,9 +36,10 @@ public class TransactionService {
         return toResponse(transactionRepository.save(transaction));
     }
 
-    public List<TransactionDto.Response> getAll(Long userId) {
-        return transactionRepository.findByUserIdOrderByDateDesc(userId)
-                .stream().map(this::toResponse).collect(Collectors.toList());
+    public Page<TransactionDto.Response> getAll(Long userId, int page, int size) {
+        return transactionRepository
+                .findByUserIdOrderByDateDesc(userId, PageRequest.of(page, size))
+                .map(this::toResponse);
     }
 
     public List<TransactionDto.Response> getByMonth(Long userId, int month, int year) {
@@ -85,6 +88,10 @@ public class TransactionService {
                 .date(t.getDate())
                 .notes(t.getNotes())
                 .createdAt(t.getCreatedAt())
+                .merchantName(t.getMerchantName())
+                .pending(t.getPending())
+                .plaidTransactionId(t.getPlaidTransactionId())
+                .plaidAccountId(t.getPlaidAccountId())
                 .build();
     }
 }

@@ -3,76 +3,27 @@ import { transactionApi, budgetApi, insightApi, plaidApi } from '../services/api
 import { MonthlySummary, Transaction, CATEGORIES, ConnectedItem } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import ConnectBank from '../components/ConnectBank';
+import StatCard from '../components/StatCard';
+import TransactionTable from '../components/TransactionTable';
+import BudgetPanel from '../components/BudgetPanel';
+import InsightsPanel from '../components/InsightsPanel';
+import { Skeleton, EmptyState } from '../components/common';
+import {
+  PALETTE, CATEGORY_ICONS, MONTH_NAMES, SHORT_MONTHS,
+  formatCurrency, formatDate, formatRelative, getTimeOfDay,
+} from '../utils/dashboard';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from 'recharts';
 import {
   LayoutDashboard, ArrowLeftRight, Target, Sparkles,
-  LogOut, Plus, Trash2, TrendingUp, TrendingDown,
+  LogOut, Plus, TrendingUp, TrendingDown,
   Wallet, ChevronLeft, ChevronRight, X, DollarSign,
-  ShoppingCart, Home, Car, Heart, Gamepad2, Zap,
-  GraduationCap, PiggyBank, Briefcase, MoreHorizontal,
-  Flame, CheckCircle2, AlertTriangle, Landmark, RefreshCw,
-  CreditCard, Building2, Clock
+  AlertTriangle, Landmark, RefreshCw,
+  CreditCard, Building2, Clock, Trash2
 } from 'lucide-react';
 
-const PALETTE = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#14b8a6','#f97316','#a855f7'];
-
-const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  Food: <ShoppingCart size={14} />, Housing: <Home size={14} />, Transport: <Car size={14} />,
-  Entertainment: <Gamepad2 size={14} />, Healthcare: <Heart size={14} />, Shopping: <ShoppingCart size={14} />,
-  Utilities: <Zap size={14} />, Education: <GraduationCap size={14} />, Savings: <PiggyBank size={14} />,
-  Salary: <Briefcase size={14} />, Freelance: <TrendingUp size={14} />, Other: <MoreHorizontal size={14} />,
-};
-
-const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-function formatCurrency(n: number) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n);
-}
-
-function formatDate(d: string) {
-  return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-// ─── Skeleton loader ─────────────────────────────────────────────────────────
-function Skeleton({ w = '100%', h = 16, radius = 6 }: { w?: string | number; h?: number; radius?: number }) {
-  return (
-    <div style={{
-      width: w, height: h, borderRadius: radius,
-      background: 'rgba(255,255,255,0.06)',
-      animation: 'pulse 1.5s ease-in-out infinite',
-    }} />
-  );
-}
-
-// ─── Stat card ────────────────────────────────────────────────────────────────
-function StatCard({ label, value, icon, color, loading }: {
-  label: string; value: string; icon: React.ReactNode; color: string; loading: boolean;
-}) {
-  return (
-    <div style={sc.card}>
-      <div style={{ ...sc.iconWrap, background: color + '18', border: `1px solid ${color}28` }}>
-        <span style={{ color }}>{icon}</span>
-      </div>
-      <p style={sc.label}>{label}</p>
-      {loading ? <Skeleton h={28} w="70%" /> : <p style={sc.value}>{value}</p>}
-    </div>
-  );
-}
-const sc: Record<string, React.CSSProperties> = {
-  card: {
-    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: 16, padding: '20px 22px',
-  },
-  iconWrap: { width: 38, height: 38, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-  label: { fontSize: 12, color: 'rgba(255,255,255,0.45)', fontWeight: 500, marginBottom: 6, letterSpacing: '0.03em', textTransform: 'uppercase' },
-  value: { fontSize: 24, fontWeight: 700, color: '#f1f5f9', letterSpacing: '-0.5px' },
-};
-
-// ─── Custom pie tooltip ───────────────────────────────────────────────────────
 function PieTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   return (
@@ -83,7 +34,6 @@ function PieTooltip({ active, payload }: any) {
   );
 }
 
-// ─── Bar tooltip ─────────────────────────────────────────────────────────────
 function BarTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
@@ -94,7 +44,6 @@ function BarTooltip({ active, payload, label }: any) {
   );
 }
 
-// ─── Main dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const now = new Date();
@@ -153,15 +102,10 @@ export default function Dashboard() {
     catch (e) { console.error(e); }
   };
 
-  // Check whether Plaid is configured on the server. Only update when we get
-  // a valid 200 response with an explicit boolean — proxy errors / network
-  // failures leave it as unknown so we don't flash a misleading warning.
   useEffect(() => {
     plaidApi.status()
-      .then(r => {
-        if (typeof r.data?.configured === 'boolean') setPlaidConfigured(r.data.configured);
-      })
-      .catch(() => { /* leave as unknown */ });
+      .then(r => { if (typeof r.data?.configured === 'boolean') setPlaidConfigured(r.data.configured); })
+      .catch(() => {});
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -204,9 +148,7 @@ export default function Dashboard() {
   const pieData = summary
     ? Object.entries(summary.expensesByCategory).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
     : [];
-
   const barData = summary?.budgets.map(b => ({ category: b.category, percentageUsed: b.percentageUsed })) ?? [];
-
   const netPositive = summary ? summary.netBalance >= 0 : true;
 
   const navItems = [
@@ -228,7 +170,6 @@ export default function Dashboard() {
             <div style={d.logoIcon}><TrendingUp size={18} color="#fff" /></div>
             <span style={d.logoText}>FinTrack</span>
           </div>
-
           <nav style={d.nav}>
             {navItems.map(({ key, label, icon }) => {
               const active = activeTab === key;
@@ -243,7 +184,6 @@ export default function Dashboard() {
             })}
           </nav>
         </div>
-
         <div style={d.sidebarFooter}>
           <div style={d.userRow}>
             <div style={d.avatar}>{userInitial}</div>
@@ -277,7 +217,6 @@ export default function Dashboard() {
                'Personalized spending analysis'}
             </p>
           </div>
-
           <div style={d.headerRight}>
             <div style={d.monthPicker}>
               <button style={d.arrowBtn} onClick={prevMonth}><ChevronLeft size={15} /></button>
@@ -300,16 +239,13 @@ export default function Dashboard() {
         {/* ── Overview Tab ── */}
         {activeTab === 'overview' && (
           <div className="fade-in">
-            {/* Plaid connect CTA — shown when user has no banks connected */}
             {plaidConfigured && items.length === 0 && (
               <div style={d.plaidBanner}>
                 <div style={d.plaidBannerLeft}>
                   <div style={d.plaidBannerIcon}><Landmark size={22} color="#a5b4fc" /></div>
                   <div>
                     <h3 style={d.plaidBannerTitle}>Connect your bank in one tap</h3>
-                    <p style={d.plaidBannerSub}>
-                      Auto-import transactions from 12,000+ banks. Bank-grade security via Plaid.
-                    </p>
+                    <p style={d.plaidBannerSub}>Auto-import transactions from 12,000+ banks. Bank-grade security via Plaid.</p>
                   </div>
                 </div>
                 <ConnectBank onConnected={() => { fetchItems(); fetchData(); }} />
@@ -334,7 +270,6 @@ export default function Dashboard() {
             </div>
 
             <div style={d.chartsRow}>
-              {/* Pie chart */}
               <div style={d.chartCard}>
                 <h3 style={d.chartTitle}>Expenses by Category</h3>
                 {loadingData ? (
@@ -342,7 +277,7 @@ export default function Dashboard() {
                     {[120, 90, 100, 80].map((w, i) => <Skeleton key={i} h={14} w={`${w}px`} />)}
                   </div>
                 ) : pieData.length === 0 ? (
-                  <EmptyState icon={<PieChart size={32} />} text="No expenses recorded this month" />
+                  <EmptyState icon={<PieChart />} text="No expenses recorded this month" />
                 ) : (
                   <>
                     <ResponsiveContainer width="100%" height={200}>
@@ -367,7 +302,6 @@ export default function Dashboard() {
                 )}
               </div>
 
-              {/* Bar chart */}
               <div style={d.chartCard}>
                 <h3 style={d.chartTitle}>Budget Usage</h3>
                 {loadingData ? (
@@ -396,7 +330,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Recent transactions strip */}
             {!loadingData && transactions.length > 0 && (
               <div style={d.recentCard}>
                 <div style={d.recentHeader}>
@@ -412,7 +345,7 @@ export default function Dashboard() {
                         </span>
                       </div>
                       <div style={d.txMeta}>
-                        <span style={d.txDesc}>{t.description}</span>
+                        <span style={d.txDesc}>{t.merchantName ?? t.description}</span>
                         <span style={d.txCat}>{t.category} · {formatDate(t.date)}</span>
                       </div>
                       <span style={{ ...d.txAmt, color: t.type === 'INCOME' ? '#10b981' : '#f87171' }}>
@@ -433,66 +366,13 @@ export default function Dashboard() {
 
         {/* ── Transactions Tab ── */}
         {activeTab === 'transactions' && (
-          <div className="fade-in" style={d.tableCard}>
-            {loadingData ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {[...Array(5)].map((_, i) => <Skeleton key={i} h={52} radius={10} />)}
-              </div>
-            ) : transactions.length === 0 ? (
-              <EmptyState icon={<ArrowLeftRight size={36} />}
-                text="No transactions for this month"
-                sub="Click + Add Transaction to get started" />
-            ) : (
-              <table style={d.table}>
-                <thead>
-                  <tr>
-                    {['Date', 'Description', 'Category', 'Type', 'Amount', ''].map(h => (
-                      <th key={h} style={d.th}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.map(t => (
-                    <tr key={t.id} style={d.tr}>
-                      <td style={{ ...d.td, color: 'rgba(255,255,255,0.4)', fontSize: 12, whiteSpace: 'nowrap' }}>{formatDate(t.date)}</td>
-                      <td style={d.td}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ ...d.txIcon, background: t.type === 'INCOME' ? 'rgba(16,185,129,0.1)' : 'rgba(99,102,241,0.1)', width: 32, height: 32 }}>
-                            <span style={{ color: t.type === 'INCOME' ? '#10b981' : '#818cf8' }}>
-                              {CATEGORY_ICONS[t.category] ?? <DollarSign size={14} />}
-                            </span>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: 14, fontWeight: 500, color: '#e2e8f0' }}>{t.description}</div>
-                            {t.notes && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{t.notes}</div>}
-                          </div>
-                        </div>
-                      </td>
-                      <td style={d.td}>
-                        <span style={d.catBadge}>{t.category}</span>
-                      </td>
-                      <td style={d.td}>
-                        <span style={{ ...d.typeBadge, background: t.type === 'INCOME' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.1)', color: t.type === 'INCOME' ? '#10b981' : '#f87171' }}>
-                          {t.type === 'INCOME' ? '↑' : '↓'} {t.type}
-                        </span>
-                      </td>
-                      <td style={{ ...d.td, fontWeight: 700, fontSize: 14, color: t.type === 'INCOME' ? '#10b981' : '#f87171', whiteSpace: 'nowrap' }}>
-                        {t.type === 'INCOME' ? '+' : '−'}{formatCurrency(t.amount)}
-                      </td>
-                      <td style={d.td}>
-                        <button style={d.deleteBtn} disabled={deletingId === t.id}
-                          onClick={() => handleDelete(t.id)}
-                          title="Delete transaction">
-                          {deletingId === t.id
-                            ? <div style={{ ...d.spinnerSm }} />
-                            : <Trash2 size={14} />}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+          <div className="fade-in">
+            <TransactionTable
+              transactions={transactions}
+              loading={loadingData}
+              deletingId={deletingId}
+              onDelete={handleDelete}
+            />
           </div>
         )}
 
@@ -529,13 +409,8 @@ export default function Dashboard() {
                     {items.reduce((sum, i) => sum + i.accounts.length, 0)} account
                     {items.reduce((sum, i) => sum + i.accounts.length, 0) === 1 ? '' : 's'}
                   </span>
-                  <ConnectBank
-                    variant="secondary"
-                    label="Add another bank"
-                    onConnected={() => { fetchItems(); fetchData(); }}
-                  />
+                  <ConnectBank variant="secondary" label="Add another bank" onConnected={() => { fetchItems(); fetchData(); }} />
                 </div>
-
                 <div style={d.itemsGrid}>
                   {items.map(item => (
                     <div key={item.id} style={d.itemCard}>
@@ -546,9 +421,7 @@ export default function Dashboard() {
                             <div style={d.itemName}>{item.institutionName ?? 'Bank'}</div>
                             <div style={d.itemMeta}>
                               <Clock size={11} />
-                              {item.lastSyncedAt
-                                ? `Synced ${formatRelative(item.lastSyncedAt)}`
-                                : 'Not yet synced'}
+                              {item.lastSyncedAt ? `Synced ${formatRelative(item.lastSyncedAt)}` : 'Not yet synced'}
                             </div>
                           </div>
                         </div>
@@ -556,13 +429,11 @@ export default function Dashboard() {
                           <Trash2 size={14} />
                         </button>
                       </div>
-
                       {item.syncError && (
                         <div style={d.itemError}>
                           <AlertTriangle size={13} /> {item.syncError}
                         </div>
                       )}
-
                       <div style={d.accountList}>
                         {item.accounts.length === 0 ? (
                           <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>No accounts yet — try syncing.</p>
@@ -582,9 +453,7 @@ export default function Dashboard() {
                                 </div>
                               </div>
                               <div style={d.accountBalance}>
-                                {acc.currentBalance != null
-                                  ? formatCurrency(acc.currentBalance)
-                                  : '—'}
+                                {acc.currentBalance != null ? formatCurrency(acc.currentBalance) : '—'}
                               </div>
                             </div>
                           ))
@@ -601,106 +470,20 @@ export default function Dashboard() {
         {/* ── Budgets Tab ── */}
         {activeTab === 'budgets' && (
           <div className="fade-in">
-            {loadingData ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-                {[...Array(4)].map((_, i) => <Skeleton key={i} h={130} radius={14} />)}
-              </div>
-            ) : !summary || summary.budgets.length === 0 ? (
-              <EmptyState icon={<Target size={36} />}
-                text="No budgets set for this month"
-                sub="Create a budget to track your spending" />
-            ) : (
-              <div style={d.budgetGrid}>
-                {summary.budgets.map(b => {
-                  const pct = b.percentageUsed;
-                  const overBudget = pct >= 100;
-                  const warning = pct >= 80 && pct < 100;
-                  const barColor = overBudget ? '#ef4444' : warning ? '#f59e0b' : '#6366f1';
-                  return (
-                    <div key={b.id} style={d.budgetCard}>
-                      <div style={d.budgetTop}>
-                        <div style={d.budgetCatRow}>
-                          <div style={{ ...d.budgetCatIcon, background: barColor + '18', border: `1px solid ${barColor}28` }}>
-                            <span style={{ color: barColor }}>{CATEGORY_ICONS[b.category] ?? <DollarSign size={14} />}</span>
-                          </div>
-                          <span style={d.budgetCatName}>{b.category}</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {overBudget && <Flame size={14} color="#ef4444" />}
-                          {warning && <AlertTriangle size={14} color="#f59e0b" />}
-                          {!overBudget && !warning && pct > 0 && <CheckCircle2 size={14} color="#10b981" />}
-                          <span style={{ ...d.pctLabel, color: barColor }}>{pct.toFixed(0)}%</span>
-                        </div>
-                      </div>
-
-                      <div style={d.progressTrack}>
-                        <div style={{ ...d.progressFill, width: `${Math.min(pct, 100)}%`, background: barColor, boxShadow: `0 0 8px ${barColor}55` }} />
-                      </div>
-
-                      <div style={d.budgetAmounts}>
-                        <div>
-                          <span style={d.amtLabel}>Spent</span>
-                          <span style={{ ...d.amtVal, color: barColor }}>{formatCurrency(b.spentAmount)}</span>
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                          <span style={d.amtLabel}>Remaining</span>
-                          <span style={{ ...d.amtVal, color: overBudget ? '#ef4444' : 'rgba(255,255,255,0.7)' }}>
-                            {formatCurrency(Math.max(b.remaining, 0))}
-                          </span>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <span style={d.amtLabel}>Budget</span>
-                          <span style={d.amtVal}>{formatCurrency(b.limitAmount)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <BudgetPanel summary={summary} loading={loadingData} month={month} year={year} onRefresh={fetchData} />
           </div>
         )}
 
         {/* ── Insights Tab ── */}
         {activeTab === 'insights' && (
-          <div className="fade-in" style={d.insightsWrap}>
-            <div style={d.insightsMeta}>
-              <div style={d.insightsIcon}><Sparkles size={22} color="#818cf8" /></div>
-              <div>
-                <h3 style={{ color: '#fff', fontWeight: 700, fontSize: 17, marginBottom: 4 }}>AI Financial Advisor</h3>
-                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
-                  Powered by GPT-4 · Analysis for {MONTH_NAMES[month - 1]} {year}
-                </p>
-              </div>
-            </div>
-
-            {loadingInsights ? (
-              <div style={d.insightsLoading}>
-                <div style={d.insightsSpinner} />
-                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginTop: 16 }}>Analyzing your finances…</p>
-              </div>
-            ) : insights ? (
-              <div style={d.insightsContent}>
-                <pre style={d.insightsText}>{insights}</pre>
-              </div>
-            ) : (
-              <div style={d.insightsEmpty}>
-                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, marginBottom: 24 }}>
-                  Get personalized advice based on your spending patterns.
-                </p>
-                <button style={d.insightBtn} onClick={handleGetInsights}>
-                  <Sparkles size={16} />
-                  Generate Insights
-                </button>
-              </div>
-            )}
-
-            {insights && !loadingInsights && (
-              <button style={{ ...d.insightBtn, marginTop: 24 }} onClick={handleGetInsights}>
-                <Sparkles size={16} />
-                Regenerate
-              </button>
-            )}
+          <div className="fade-in">
+            <InsightsPanel
+              insights={insights}
+              loading={loadingInsights}
+              month={month}
+              year={year}
+              onGenerate={handleGetInsights}
+            />
           </div>
         )}
       </main>
@@ -771,47 +554,17 @@ export default function Dashboard() {
   );
 }
 
-function EmptyState({ icon, text, sub }: { icon: React.ReactNode; text: string; sub?: string }) {
-  return (
-    <div style={{ textAlign: 'center', padding: '48px 24px', color: 'rgba(255,255,255,0.2)' }}>
-      <div style={{ marginBottom: 12 }}>{icon}</div>
-      <p style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.3)', marginBottom: 4 }}>{text}</p>
-      {sub && <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>{sub}</p>}
-    </div>
-  );
-}
-
-function getTimeOfDay() {
-  const h = new Date().getHours();
-  if (h < 12) return 'morning';
-  if (h < 17) return 'afternoon';
-  return 'evening';
-}
-
-function formatRelative(iso: string) {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
-
 const formInputFocus = { borderColor: 'rgba(99,102,241,0.6)', boxShadow: '0 0 0 3px rgba(99,102,241,0.12)' };
 const formInputBlur = { borderColor: 'rgba(255,255,255,0.1)', boxShadow: 'none' };
 
 const d: Record<string, React.CSSProperties> = {
   root: { display: 'flex', minHeight: '100vh', background: '#070714' },
 
-  // Sidebar
   sidebar: {
     width: 236, background: 'rgba(255,255,255,0.025)',
     borderRight: '1px solid rgba(255,255,255,0.07)',
     display: 'flex', flexDirection: 'column',
-    padding: '24px 0', position: 'sticky', top: 0, height: '100vh',
-    flexShrink: 0,
+    padding: '24px 0', position: 'sticky', top: 0, height: '100vh', flexShrink: 0,
   },
   sidebarTop: { flex: 1, padding: '0 14px' },
   logo: { display: 'flex', alignItems: 'center', gap: 10, padding: '4px 10px', marginBottom: 32 },
@@ -827,8 +580,7 @@ const d: Record<string, React.CSSProperties> = {
     padding: '10px 12px', borderRadius: 10, border: 'none',
     background: 'transparent', color: 'rgba(255,255,255,0.45)',
     cursor: 'pointer', width: '100%', textAlign: 'left',
-    fontSize: 14, fontWeight: 500, transition: 'all 0.15s',
-    position: 'relative',
+    fontSize: 14, fontWeight: 500, transition: 'all 0.15s', position: 'relative',
   },
   navBtnActive: { background: 'rgba(99,102,241,0.18)', color: '#c7d2fe' },
   aiBadge: {
@@ -837,8 +589,7 @@ const d: Record<string, React.CSSProperties> = {
     color: '#fff', padding: '2px 6px', borderRadius: 4, letterSpacing: '0.05em',
   },
   sidebarFooter: {
-    borderTop: '1px solid rgba(255,255,255,0.07)',
-    padding: '16px 14px 0',
+    borderTop: '1px solid rgba(255,255,255,0.07)', padding: '16px 14px 0',
     display: 'flex', alignItems: 'center', gap: 8,
   },
   userRow: { display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 },
@@ -851,17 +602,10 @@ const d: Record<string, React.CSSProperties> = {
   userInfo: { minWidth: 0 },
   userName: { fontSize: 13, fontWeight: 600, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   userEmail: { fontSize: 11, color: 'rgba(255,255,255,0.3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  logoutBtn: {
-    background: 'transparent', border: 'none', cursor: 'pointer',
-    display: 'flex', padding: 6, borderRadius: 8, flexShrink: 0,
-  },
+  logoutBtn: { background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', padding: 6, borderRadius: 8, flexShrink: 0 },
 
-  // Main
   main: { flex: 1, padding: '32px 40px', overflowY: 'auto', minWidth: 0 },
-  header: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-    marginBottom: 32, gap: 16, flexWrap: 'wrap',
-  },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32, gap: 16, flexWrap: 'wrap' },
   greeting: { fontSize: 22, fontWeight: 700, color: '#f1f5f9', letterSpacing: '-0.4px', marginBottom: 4 },
   subGreeting: { fontSize: 13, color: 'rgba(255,255,255,0.4)' },
   headerRight: { display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 },
@@ -870,10 +614,7 @@ const d: Record<string, React.CSSProperties> = {
     background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
     borderRadius: 10, padding: '6px 8px',
   },
-  arrowBtn: {
-    background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)',
-    display: 'flex', alignItems: 'center', padding: '2px 4px', borderRadius: 6,
-  },
+  arrowBtn: { background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', padding: '2px 4px', borderRadius: 6 },
   monthLabel: { fontSize: 13, fontWeight: 600, color: '#e2e8f0', minWidth: 72, textAlign: 'center' },
   addBtn: {
     display: 'flex', alignItems: 'center', gap: 8,
@@ -889,7 +630,6 @@ const d: Record<string, React.CSSProperties> = {
     color: 'rgba(255,255,255,0.7)', fontWeight: 500, fontSize: 12, cursor: 'pointer',
   },
 
-  // Plaid banner & accounts UI
   plaidBanner: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 20,
     background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08))',
@@ -907,72 +647,13 @@ const d: Record<string, React.CSSProperties> = {
   warnBanner: {
     display: 'flex', alignItems: 'center', gap: 10,
     background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
-    borderRadius: 12, padding: '12px 16px', marginBottom: 20,
-    color: '#fbbf24', fontSize: 13,
+    borderRadius: 12, padding: '12px 16px', marginBottom: 20, color: '#fbbf24', fontSize: 13,
   },
-  codeChip: {
-    background: 'rgba(255,255,255,0.08)', padding: '1px 6px', borderRadius: 4,
-    fontFamily: 'ui-monospace, SFMono-Regular, monospace', fontSize: 12,
-  },
-  connectEmpty: {
-    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
-    borderRadius: 18, padding: '56px 32px', textAlign: 'center',
-  },
-  connectEmptyIcon: {
-    width: 72, height: 72, borderRadius: 18, margin: '0 auto 20px',
-    background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.25)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  },
-  connectEmptyTitle: { fontSize: 22, fontWeight: 700, color: '#f1f5f9', marginBottom: 10, letterSpacing: '-0.3px' },
-  connectEmptySub: { fontSize: 14, color: 'rgba(255,255,255,0.5)', maxWidth: 460, margin: '0 auto', lineHeight: 1.6 },
-  trustRow: { display: 'flex', justifyContent: 'center', gap: 28, marginTop: 28, flexWrap: 'wrap' },
-  trustItem: { fontSize: 12, color: 'rgba(255,255,255,0.35)', fontWeight: 500 },
-  accountsHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
-  itemsGrid: { display: 'flex', flexDirection: 'column', gap: 14 },
-  itemCard: {
-    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: 16, padding: 22,
-  },
-  itemHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  itemHeaderLeft: { display: 'flex', alignItems: 'center', gap: 14 },
-  itemIcon: {
-    width: 40, height: 40, borderRadius: 10,
-    background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.2)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-  },
-  itemName: { fontSize: 15, fontWeight: 700, color: '#f1f5f9', marginBottom: 3 },
-  itemMeta: { fontSize: 12, color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', gap: 5 },
-  itemError: {
-    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
-    color: '#fca5a5', fontSize: 12, padding: '8px 12px', borderRadius: 8, marginBottom: 12,
-    display: 'flex', alignItems: 'center', gap: 6,
-  },
-  disconnectBtn: {
-    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-    color: 'rgba(255,255,255,0.4)', borderRadius: 8, cursor: 'pointer',
-    display: 'flex', padding: 8,
-  },
-  accountList: { display: 'flex', flexDirection: 'column', gap: 6, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14 },
-  accountRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' },
-  accountLeft: { display: 'flex', alignItems: 'center', gap: 12 },
-  accountIcon: {
-    width: 30, height: 30, borderRadius: 8,
-    background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  },
-  accountName: { fontSize: 14, fontWeight: 500, color: '#e2e8f0' },
-  accountSubtype: { fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 2, textTransform: 'capitalize' },
-  accountBalance: { fontSize: 15, fontWeight: 700, color: '#f1f5f9', fontVariantNumeric: 'tabular-nums' },
+  codeChip: { background: 'rgba(255,255,255,0.08)', padding: '1px 6px', borderRadius: 4, fontFamily: 'ui-monospace, SFMono-Regular, monospace', fontSize: 12 },
 
-  // Stats
   statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 },
-
-  // Charts
   chartsRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 },
-  chartCard: {
-    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: 16, padding: '22px 24px',
-  },
+  chartCard: { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '22px 24px' },
   chartTitle: { fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.6)', marginBottom: 16, letterSpacing: '0.02em', textTransform: 'uppercase' },
   legend: { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 },
   legendItem: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 },
@@ -980,28 +661,17 @@ const d: Record<string, React.CSSProperties> = {
   legendName: { color: 'rgba(255,255,255,0.6)', flex: 1 },
   legendVal: { color: 'rgba(255,255,255,0.85)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' },
 
-  // Recent transactions
-  recentCard: {
-    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: 16, padding: '22px 24px', marginBottom: 20,
-  },
+  recentCard: { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '22px 24px', marginBottom: 20 },
   recentHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   viewAllBtn: { background: 'none', border: 'none', color: '#818cf8', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
   recentList: { display: 'flex', flexDirection: 'column', gap: 2 },
-  recentRow: {
-    display: 'flex', alignItems: 'center', gap: 12,
-    padding: '10px 4px', borderRadius: 8,
-  },
-  txIcon: {
-    width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  },
+  recentRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px', borderRadius: 8 },
+  txIcon: { width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   txMeta: { flex: 1, minWidth: 0 },
   txDesc: { display: 'block', fontSize: 14, fontWeight: 500, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   txCat: { display: 'block', fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 2 },
   txAmt: { fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' },
 
-  // Insight button
   insightBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 8,
     padding: '12px 22px', borderRadius: 10, border: 'none',
@@ -1010,122 +680,41 @@ const d: Record<string, React.CSSProperties> = {
     boxShadow: '0 4px 16px rgba(99,102,241,0.3)',
   },
 
-  // Transactions table
-  tableCard: {
-    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
-    borderRadius: 16, padding: '8px 0', overflowX: 'auto',
-  },
-  table: { width: '100%', borderCollapse: 'collapse' },
-  th: {
-    textAlign: 'left', padding: '10px 20px', fontSize: 11, fontWeight: 600,
-    color: 'rgba(255,255,255,0.3)', borderBottom: '1px solid rgba(255,255,255,0.06)',
-    textTransform: 'uppercase', letterSpacing: '0.06em',
-  },
-  tr: { borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 0.1s' },
-  td: { padding: '14px 20px', fontSize: 13, color: 'rgba(255,255,255,0.75)' },
-  catBadge: {
-    background: 'rgba(99,102,241,0.12)', color: '#a5b4fc',
-    padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 500,
-  },
-  typeBadge: { padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600 },
-  deleteBtn: {
-    background: 'transparent', border: 'none', cursor: 'pointer',
-    color: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', padding: 6,
-    borderRadius: 6, transition: 'color 0.15s',
-  },
-  spinnerSm: {
-    width: 14, height: 14, borderRadius: '50%',
-    border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.5)',
-    animation: 'spin 0.6s linear infinite',
-  },
+  connectEmpty: { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '56px 32px', textAlign: 'center' },
+  connectEmptyIcon: { width: 72, height: 72, borderRadius: 18, margin: '0 auto 20px', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  connectEmptyTitle: { fontSize: 22, fontWeight: 700, color: '#f1f5f9', marginBottom: 10, letterSpacing: '-0.3px' },
+  connectEmptySub: { fontSize: 14, color: 'rgba(255,255,255,0.5)', maxWidth: 460, margin: '0 auto', lineHeight: 1.6 },
+  trustRow: { display: 'flex', justifyContent: 'center', gap: 28, marginTop: 28, flexWrap: 'wrap' },
+  trustItem: { fontSize: 12, color: 'rgba(255,255,255,0.35)', fontWeight: 500 },
+  accountsHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
+  itemsGrid: { display: 'flex', flexDirection: 'column', gap: 14 },
+  itemCard: { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 22 },
+  itemHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  itemHeaderLeft: { display: 'flex', alignItems: 'center', gap: 14 },
+  itemIcon: { width: 40, height: 40, borderRadius: 10, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  itemName: { fontSize: 15, fontWeight: 700, color: '#f1f5f9', marginBottom: 3 },
+  itemMeta: { fontSize: 12, color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', gap: 5 },
+  itemError: { background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', fontSize: 12, padding: '8px 12px', borderRadius: 8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 },
+  disconnectBtn: { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)', borderRadius: 8, cursor: 'pointer', display: 'flex', padding: 8 },
+  accountList: { display: 'flex', flexDirection: 'column', gap: 6, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14 },
+  accountRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' },
+  accountLeft: { display: 'flex', alignItems: 'center', gap: 12 },
+  accountIcon: { width: 30, height: 30, borderRadius: 8, background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  accountName: { fontSize: 14, fontWeight: 500, color: '#e2e8f0' },
+  accountSubtype: { fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 2, textTransform: 'capitalize' },
+  accountBalance: { fontSize: 15, fontWeight: 700, color: '#f1f5f9', fontVariantNumeric: 'tabular-nums' },
 
-  // Budgets
-  budgetGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 },
-  budgetCard: {
-    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: 16, padding: '20px 22px',
-  },
-  budgetTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  budgetCatRow: { display: 'flex', alignItems: 'center', gap: 10 },
-  budgetCatIcon: {
-    width: 32, height: 32, borderRadius: 8,
-    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-  },
-  budgetCatName: { fontSize: 15, fontWeight: 600, color: '#e2e8f0' },
-  pctLabel: { fontSize: 15, fontWeight: 700 },
-  progressTrack: {
-    height: 7, borderRadius: 4, background: 'rgba(255,255,255,0.07)', marginBottom: 14, overflow: 'hidden',
-  },
-  progressFill: { height: '100%', borderRadius: 4, transition: 'width 0.5s ease' },
-  budgetAmounts: { display: 'flex', justifyContent: 'space-between' },
-  amtLabel: { display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 500, marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' },
-  amtVal: { display: 'block', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.8)', fontVariantNumeric: 'tabular-nums' },
-
-  // Insights
-  insightsWrap: {
-    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
-    borderRadius: 16, padding: '28px 32px', maxWidth: 720,
-  },
-  insightsMeta: { display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.07)' },
-  insightsIcon: {
-    width: 44, height: 44, borderRadius: 12,
-    background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.25)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-  },
-  insightsLoading: { textAlign: 'center', padding: '48px 0' },
-  insightsSpinner: {
-    width: 36, height: 36, borderRadius: '50%',
-    border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#6366f1',
-    animation: 'spin 0.8s linear infinite', margin: '0 auto',
-  },
-  insightsContent: {},
-  insightsText: {
-    color: 'rgba(255,255,255,0.75)', lineHeight: 1.85,
-    whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 14,
-  },
-  insightsEmpty: { textAlign: 'center', padding: '40px 0' },
-
-  // Modal
-  overlay: {
-    position: 'fixed', inset: 0,
-    background: 'rgba(7,7,20,0.8)', backdropFilter: 'blur(4px)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    zIndex: 200, padding: 24,
-  },
-  modal: {
-    background: '#0f0f24', border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 18, padding: '28px 32px', width: '100%', maxWidth: 520,
-    boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
-  },
+  overlay: { position: 'fixed', inset: 0, background: 'rgba(7,7,20,0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 24 },
+  modal: { background: '#0f0f24', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 18, padding: '28px 32px', width: '100%', maxWidth: 520, boxShadow: '0 24px 80px rgba(0,0,0,0.6)' },
   modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   modalTitle: { fontSize: 18, fontWeight: 700, color: '#fff', letterSpacing: '-0.3px' },
-  closeBtn: {
-    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 8, cursor: 'pointer', color: 'rgba(255,255,255,0.5)',
-    display: 'flex', padding: 7,
-  },
+  closeBtn: { background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, cursor: 'pointer', color: 'rgba(255,255,255,0.5)', display: 'flex', padding: 7 },
   modalForm: { display: 'flex', flexDirection: 'column', gap: 16 },
   formRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 },
   formField: { display: 'flex', flexDirection: 'column', gap: 7 },
   formLabel: { fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  formInput: {
-    padding: '11px 14px', borderRadius: 9,
-    border: '1px solid rgba(255,255,255,0.1)',
-    background: 'rgba(255,255,255,0.05)',
-    color: '#fff', fontSize: 14, outline: 'none',
-    transition: 'border-color 0.15s, box-shadow 0.15s',
-    fontFamily: 'inherit',
-  },
+  formInput: { padding: '11px 14px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 14, outline: 'none', transition: 'border-color 0.15s, box-shadow 0.15s', fontFamily: 'inherit' },
   modalActions: { display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 },
-  cancelBtn: {
-    padding: '10px 18px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)',
-    background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)',
-    fontSize: 14, fontWeight: 500, cursor: 'pointer',
-  },
-  confirmBtn: {
-    padding: '10px 20px', borderRadius: 9, border: 'none',
-    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-    color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-    boxShadow: '0 4px 14px rgba(99,102,241,0.3)',
-  },
+  cancelBtn: { padding: '10px 18px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)', fontSize: 14, fontWeight: 500, cursor: 'pointer' },
+  confirmBtn: { padding: '10px 20px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.3)' },
 };

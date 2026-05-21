@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
@@ -39,10 +40,13 @@ public class TransactionController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all transactions for the current user")
-    public ResponseEntity<List<TransactionDto.Response>> getAll(Authentication auth) {
+    @Operation(summary = "Get paginated transactions for the current user")
+    public ResponseEntity<Page<TransactionDto.Response>> getAll(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+            Authentication auth) {
         User user = authService.getCurrentUser(auth.getName());
-        return ResponseEntity.ok(transactionService.getAll(user.getId()));
+        return ResponseEntity.ok(transactionService.getAll(user.getId(), page, size));
     }
 
     @GetMapping("/month/{year}/{month}")

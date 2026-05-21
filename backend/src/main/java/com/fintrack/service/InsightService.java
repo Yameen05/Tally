@@ -16,6 +16,8 @@ import java.util.Map;
 @Slf4j
 public class InsightService {
 
+    private static final String FALLBACK = "Unable to generate insights at this time. Please try again later.";
+
     private final WebClient.Builder webClientBuilder;
     private final BudgetService budgetService;
 
@@ -36,13 +38,12 @@ public class InsightService {
     }
 
     @PostConstruct
-    private void init() {
+    void init() {
         this.webClient = webClientBuilder.build();
     }
 
     public String getSpendingInsights(Long userId, int month, int year) {
         BudgetDto.MonthlySummary summary = budgetService.getMonthlySummary(userId, month, year);
-
         String prompt = buildPrompt(summary);
 
         try {
@@ -58,39 +59,31 @@ public class InsightService {
                 "temperature", 0.7
             );
 
-            Map<String, Object> response = webClient.post()
+            OpenAiResponse response = webClient.post()
                     .uri(openAiUrl)
                     .header("Authorization", "Bearer " + openAiKey)
                     .header("Content-Type", "application/json")
                     .bodyValue(requestBody)
                     .retrieve()
-                    .bodyToMono(Map.class)
+                    .bodyToMono(OpenAiResponse.class)
                     .block(Duration.ofSeconds(30));
 
-            if (response == null) {
-                log.warn("OpenAI returned null response");
-                return "Unable to generate insights at this time. Please try again later.";
+            if (response == null || response.choices() == null || response.choices().isEmpty()) {
+                log.warn("OpenAI returned empty or null response");
+                return FALLBACK;
             }
 
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> choices = (List<Map<String, Object>>) response.get("choices");
-            if (choices == null || choices.isEmpty()) {
-                log.warn("OpenAI returned empty choices");
-                return "Unable to generate insights at this time. Please try again later.";
-            }
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-            if (message == null || !message.containsKey("content")) {
+            OpenAiMessage message = response.choices().get(0).message();
+            if (message == null || message.content() == null) {
                 log.warn("OpenAI response missing message content");
-                return "Unable to generate insights at this time. Please try again later.";
+                return FALLBACK;
             }
 
-            return (String) message.get("content");
+            return message.content();
 
         } catch (Exception e) {
             log.error("OpenAI API error: {}", e.getClass().getSimpleName());
-            return "Unable to generate insights at this time. Please try again later.";
+            return FALLBACK;
         }
     }
 
@@ -118,4 +111,9 @@ public class InsightService {
         sb.append("\nPlease give me specific, actionable advice to improve my finances this month.");
         return sb.toString();
     }
+
+    // Package-private so tests can reference these types directly
+    record OpenAiMessage(String content) {}
+    record OpenAiChoice(OpenAiMessage message) {}
+    record OpenAiResponse(List<OpenAiChoice> choices) {}
 }

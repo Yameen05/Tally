@@ -1,0 +1,14 @@
+{
+  "id": "session-1779333514007",
+  "startedAt": "2026-05-21T03:18:34.007Z",
+  "cwd": "/Users/yameen/Documents/Projects/fintrack",
+  "context": {},
+  "metrics": {
+    "edits": 35,
+    "commands": 0,
+    "tasks": 0,
+    "errors": 0
+  },
+  "endedAt": "2026-05-21T03:56:41.020Z",
+  "duration": 2287014
+}

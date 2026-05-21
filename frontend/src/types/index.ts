@@ -9,6 +9,10 @@ export interface Transaction {
   date: string;
   notes?: string;
   createdAt: string;
+  merchantName?: string;
+  pending?: boolean;
+  plaidTransactionId?: string;
+  plaidAccountId?: string;
 }
 
 export interface Budget {
@@ -57,6 +61,32 @@ export interface ConnectedItem {
   lastSyncedAt: string | null;
   syncError: string | null;
   accounts: ConnectedAccount[];
+}
+
+export interface PagedResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+  first: boolean;
+  last: boolean;
+}
+
+export interface TransactionRequest {
+  description: string;
+  amount: number;
+  type: TransactionType;
+  category: string;
+  date: string;
+  notes?: string;
+}
+
+export interface BudgetRequest {
+  category: string;
+  limitAmount: number;
+  month: number;
+  year: number;
 }
 
 export const CATEGORIES = [
