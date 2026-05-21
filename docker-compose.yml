@@ -25,6 +25,7 @@ services:
       DB_PASSWORD: password
       JWT_SECRET: ${JWT_SECRET}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      PLAID_ENCRYPTION_KEY: ${PLAID_ENCRYPTION_KEY}
       CORS_ORIGINS: http://localhost:3000,http://localhost:80
     depends_on:
       db:
