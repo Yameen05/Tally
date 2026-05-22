@@ -5,6 +5,7 @@ backend/target/
 # Node
 node_modules/
 frontend/dist/
+coverage/
 
 # Logs
 *.log
@@ -16,9 +17,20 @@ backend.log
 .vscode/
 *.iml
 
-# Claude Code worktrees and local config
+# Local agent/tool state
 .claude/
+.claude-flow/
+.swarm/
+ruvector.db
 
 # Env files (NEVER commit real secrets)
 .env
+.env.*
 .env.local
+!.env.example
+
+# Local databases and dumps
+*.db
+*.sqlite
+*.sqlite3
+*.dump

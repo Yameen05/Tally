@@ -12,7 +12,12 @@ fi
 
 # Check if Node.js is installed
 if ! command -v node &> /dev/null; then
-    echo "❌ Node.js is not installed. Please install Node.js 18 or higher."
+    echo "❌ Node.js is not installed. Please install Node.js 20.19+ or 22.12+."
+    exit 1
+fi
+
+if ! node -e "const [major, minor] = process.versions.node.split('.').map(Number); process.exit((major === 20 && minor >= 19) || (major === 22 && minor >= 12) || major > 22 ? 0 : 1)"; then
+    echo "❌ Node.js $(node --version) is too old. Please install Node.js 20.19+ or 22.12+."
     exit 1
 fi
 
@@ -30,6 +35,14 @@ if ! command -v mysql &> /dev/null; then
 fi
 
 echo "✅ Prerequisites check passed"
+
+# Load local environment variables if present
+if [ -f ".env" ]; then
+    set -a
+    source .env
+    set +a
+    echo "🔧 Loaded .env"
+fi
 
 # Set default environment variables
 export JWT_SECRET=${JWT_SECRET:-"fintrack-dev-secret-key-change-in-production"}

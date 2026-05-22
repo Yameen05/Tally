@@ -5,7 +5,7 @@ This guide will help you get the FinTrack application running on your system.
 ## Prerequisites
 
 - Java 17 or higher
-- Node.js 18 or higher
+- Node.js 20.19+ or 22.12+
 - Maven 3.6 or higher
 - MySQL 8.0 or higher (for local development)
 - Docker & Docker Compose (for containerized deployment)
@@ -16,24 +16,32 @@ This is the easiest way to run the complete application with all dependencies.
 
 1. **Start Docker Desktop** (make sure Docker is running)
 
-2. **Set your OpenAI API Key** (optional, for AI insights feature):
+2. **Create your local environment file**:
    ```bash
-   export OPENAI_API_KEY=your-openai-api-key-here
+   cp .env.example .env
    ```
 
-3. **Run the application**:
+3. **Generate required local secrets** and place them in `.env`:
    ```bash
-   docker-compose up --build
+   openssl rand -base64 48   # JWT_SECRET
+   openssl rand -base64 32   # PLAID_ENCRYPTION_KEY
    ```
 
-4. **Access the application**:
+   OpenAI and Plaid credentials are optional. Leave `OPENAI_API_KEY`, `PLAID_CLIENT_ID`, and `PLAID_SECRET` blank if you only want local manual tracking.
+
+4. **Run the application**:
+   ```bash
+   docker compose up --build
+   ```
+
+5. **Access the application**:
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8080
    - Swagger UI: http://localhost:8080/swagger-ui.html
 
-5. **Stop the application**:
+6. **Stop the application**:
    ```bash
-   docker-compose down
+   docker compose down
    ```
 
 ## Option 2: Run Locally (Development)
@@ -67,23 +75,16 @@ This is the easiest way to run the complete application with all dependencies.
    cd backend
    ```
 
-2. **Update database configuration** (if needed):
-   Edit `src/main/resources/application.properties`:
-   ```properties
-   spring.datasource.url=jdbc:mysql://localhost:3306/fintrack?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-   spring.datasource.username=fintrack
-   spring.datasource.password=password
-   ```
-
-3. **Set environment variables** (optional):
+2. **Set environment variables** (optional):
    ```bash
+   export DB_USERNAME=fintrack
+   export DB_PASSWORD=password
    export OPENAI_API_KEY=your-openai-api-key-here
-   export JWT_SECRET=your-jwt-secret-key
    ```
 
-4. **Run the backend**:
+3. **Run the backend**:
    ```bash
-   mvn spring-boot:run
+   mvn spring-boot:run -Dspring-boot.run.profiles=local
    ```
 
    The backend will be available at http://localhost:8080
@@ -109,7 +110,7 @@ This is the easiest way to run the complete application with all dependencies.
 
 ## Testing the Application
 
-1. **Register a new account** at http://localhost:3000
+1. **Register a new account** at http://localhost:3000 when using Docker, or http://localhost:5173 when running the frontend dev server
 2. **Login** with your credentials
 3. **Add some transactions** to test the functionality
 4. **Create budgets** for different categories
@@ -133,7 +134,7 @@ This is the easiest way to run the complete application with all dependencies.
 
 - **Docker daemon not running**: Start Docker Desktop
 - **Port conflicts**: Stop other applications using ports 3000, 8080, or 3306
-- **Build failures**: Run `docker-compose down` and try again
+- **Build failures**: Run `docker compose down` and try again
 
 ## Development Notes
 
@@ -141,7 +142,7 @@ This is the easiest way to run the complete application with all dependencies.
 - The frontend uses React 18 with TypeScript and Vite
 - Database schema is automatically created by Hibernate
 - JWT tokens expire after 24 hours
-- CORS is configured to allow requests from localhost:3000
+- CORS is configured to allow requests from localhost:3000 and localhost:5173 during local development
 
 ## API Documentation
 

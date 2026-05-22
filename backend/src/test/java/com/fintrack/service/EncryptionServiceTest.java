@@ -29,6 +29,14 @@ class EncryptionServiceTest {
     }
 
     @Test
+    void encryptThenDecrypt_shouldPreserveUtf8Text() {
+        String plaintext = "access-token-\u20ac-\u2603";
+        String encrypted = service.encrypt(plaintext);
+
+        assertThat(service.decrypt(encrypted)).isEqualTo(plaintext);
+    }
+
+    @Test
     void encrypt_calledTwice_shouldProduceDifferentCiphertext() {
         String pt = "same-plaintext";
         assertThat(service.encrypt(pt)).isNotEqualTo(service.encrypt(pt));
@@ -47,5 +55,20 @@ class EncryptionServiceTest {
         // "tooshort" base64-encoded — decodes to 8 bytes, not 32
         ReflectionTestUtils.setField(svc, "base64Key", "dG9vc2hvcnQ=");
         assertThatThrownBy(svc::init).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void init_withInvalidBase64Key_shouldThrowIllegalState() {
+        EncryptionService svc = new EncryptionService();
+        ReflectionTestUtils.setField(svc, "base64Key", "not base64");
+
+        assertThatThrownBy(svc::init).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void decrypt_withShortPayload_shouldThrowRuntimeException() {
+        assertThatThrownBy(() -> service.decrypt("c2hvcnQ="))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Decryption failed");
     }
 }

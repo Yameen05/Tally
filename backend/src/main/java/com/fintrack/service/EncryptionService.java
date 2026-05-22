@@ -9,6 +9,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
 
@@ -37,7 +38,12 @@ public class EncryptionService {
                 "Generate one with: openssl rand -base64 32"
             );
         }
-        byte[] keyBytes = Base64.getDecoder().decode(base64Key);
+        byte[] keyBytes;
+        try {
+            keyBytes = Base64.getDecoder().decode(base64Key);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException("plaid.encryption-key must be valid Base64", e);
+        }
         if (keyBytes.length != 32) {
             throw new IllegalStateException(
                 "plaid.encryption-key must decode to exactly 32 bytes (256 bits). Got " + keyBytes.length
@@ -53,7 +59,7 @@ public class EncryptionService {
 
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(TAG_LENGTH, iv));
-            byte[] ciphertext = cipher.doFinal(plaintext.getBytes());
+            byte[] ciphertext = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
 
             ByteBuffer buf = ByteBuffer.allocate(iv.length + ciphertext.length);
             buf.put(iv).put(ciphertext);
@@ -66,13 +72,16 @@ public class EncryptionService {
     public String decrypt(String encoded) {
         try {
             byte[] all = Base64.getDecoder().decode(encoded);
+            if (all.length <= IV_LENGTH) {
+                throw new IllegalArgumentException("Encrypted payload is too short");
+            }
             byte[] iv = new byte[IV_LENGTH];
             byte[] ciphertext = new byte[all.length - IV_LENGTH];
             ByteBuffer.wrap(all).get(iv).get(ciphertext);
 
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(TAG_LENGTH, iv));
-            return new String(cipher.doFinal(ciphertext));
+            return new String(cipher.doFinal(ciphertext), StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException("Decryption failed", e);
         }

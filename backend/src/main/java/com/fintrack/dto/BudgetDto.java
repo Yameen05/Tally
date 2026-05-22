@@ -27,7 +27,7 @@ public class BudgetDto {
         @NotNull @Min(1) @Max(12)
         private Integer month;
 
-        @NotNull
+        @NotNull @Min(2000) @Max(2100)
         private Integer year;
     }
 

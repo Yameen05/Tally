@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { transactionApi, budgetApi, insightApi, plaidApi } from '../services/api';
-import { MonthlySummary, Transaction, CATEGORIES, ConnectedItem } from '../types';
+import { MonthlySummary, Transaction, TransactionType, CATEGORIES, ConnectedItem } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import ConnectBank from '../components/ConnectBank';
 import StatCard from '../components/StatCard';
@@ -44,6 +44,15 @@ function BarTooltip({ active, payload, label }: any) {
   );
 }
 
+interface TransactionFormState {
+  description: string;
+  amount: string;
+  type: TransactionType;
+  category: string;
+  date: string;
+  notes: string;
+}
+
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const now = new Date();
@@ -57,7 +66,7 @@ export default function Dashboard() {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<TransactionFormState>({
     description: '', amount: '', type: 'EXPENSE',
     category: 'Food', date: now.toISOString().split('T')[0], notes: ''
   });
@@ -516,7 +525,7 @@ export default function Dashboard() {
               <div style={d.formRow}>
                 <div style={d.formField}>
                   <label style={d.formLabel}>Type</label>
-                  <select style={d.formInput} value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
+                  <select style={d.formInput} value={form.type} onChange={e => setForm({ ...form, type: e.target.value as TransactionType })}>
                     <option value="EXPENSE">Expense</option>
                     <option value="INCOME">Income</option>
                   </select>

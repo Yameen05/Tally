@@ -13,6 +13,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Sliding-window rate limiter for /api/auth/** endpoints.
@@ -24,8 +25,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private static final int MAX_REQUESTS = 10;
     private static final long WINDOW_MS = 60_000;
+    private static final int TOO_MANY_REQUESTS_STATUS = 429;
 
     private final Map<String, Deque<Long>> requestTimestamps = new ConcurrentHashMap<>();
+    private final AtomicLong lastPrunedAt = new AtomicLong();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -38,16 +41,16 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         String ip = resolveClientIp(request);
         long now = System.currentTimeMillis();
+        pruneExpiredClients(now);
 
         Deque<Long> timestamps = requestTimestamps.computeIfAbsent(ip, k -> new ArrayDeque<>());
 
         synchronized (timestamps) {
-            while (!timestamps.isEmpty() && now - timestamps.peekFirst() > WINDOW_MS) {
-                timestamps.pollFirst();
-            }
+            pruneExpiredTimestamps(timestamps, now);
             if (timestamps.size() >= MAX_REQUESTS) {
-                response.setStatus(429);
+                response.setStatus(TOO_MANY_REQUESTS_STATUS);
                 response.setContentType("application/json");
+                response.setHeader("Retry-After", String.valueOf(WINDOW_MS / 1000));
                 response.getWriter().write("{\"error\":\"Too many requests. Please try again later.\"}");
                 return;
             }
@@ -63,5 +66,26 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return forwarded.split(",")[0].trim();
         }
         return request.getRemoteAddr();
+    }
+
+    private void pruneExpiredClients(long now) {
+        long previousPrune = lastPrunedAt.get();
+        if (now - previousPrune < WINDOW_MS || !lastPrunedAt.compareAndSet(previousPrune, now)) {
+            return;
+        }
+
+        requestTimestamps.entrySet().removeIf(entry -> {
+            Deque<Long> timestamps = entry.getValue();
+            synchronized (timestamps) {
+                pruneExpiredTimestamps(timestamps, now);
+                return timestamps.isEmpty();
+            }
+        });
+    }
+
+    private void pruneExpiredTimestamps(Deque<Long> timestamps, long now) {
+        while (!timestamps.isEmpty() && now - timestamps.peekFirst() > WINDOW_MS) {
+            timestamps.pollFirst();
+        }
     }
 }

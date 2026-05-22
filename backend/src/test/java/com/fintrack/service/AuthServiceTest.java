@@ -55,7 +55,7 @@ class AuthServiceTest {
 
     @Test
     void register_newEmail_shouldReturnAuthResponse() {
-        when(userRepository.existsByEmail("yameen@example.com")).thenReturn(false);
+        when(userRepository.existsByEmailIgnoreCase("yameen@example.com")).thenReturn(false);
         when(passwordEncoder.encode("secret123")).thenReturn("hashed-pw");
         when(userRepository.save(any(User.class))).thenReturn(testUser);
         when(userDetailsService.loadUserByUsername("yameen@example.com")).thenReturn(mockUserDetails);
@@ -74,8 +74,27 @@ class AuthServiceTest {
     }
 
     @Test
+    void register_trimsAndNormalizesEmail() {
+        when(userRepository.existsByEmailIgnoreCase("yameen@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("secret123")).thenReturn("hashed-pw");
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+        when(userDetailsService.loadUserByUsername("yameen@example.com")).thenReturn(mockUserDetails);
+        when(jwtUtil.generateToken(mockUserDetails)).thenReturn("jwt-token");
+
+        AuthDto.RegisterRequest request = new AuthDto.RegisterRequest();
+        request.setName("  Yameen  ");
+        request.setEmail("  YAMEEN@EXAMPLE.COM  ");
+        request.setPassword("secret123");
+
+        authService.register(request);
+
+        verify(userRepository).save(argThat(user ->
+                user.getName().equals("Yameen") && user.getEmail().equals("yameen@example.com")));
+    }
+
+    @Test
     void register_duplicateEmail_shouldThrowConflict() {
-        when(userRepository.existsByEmail("yameen@example.com")).thenReturn(true);
+        when(userRepository.existsByEmailIgnoreCase("yameen@example.com")).thenReturn(true);
 
         AuthDto.RegisterRequest request = new AuthDto.RegisterRequest();
         request.setEmail("yameen@example.com");
@@ -90,7 +109,7 @@ class AuthServiceTest {
 
     @Test
     void login_validCredentials_shouldReturnAuthResponse() {
-        when(userRepository.findByEmail("yameen@example.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByEmailIgnoreCase("yameen@example.com")).thenReturn(Optional.of(testUser));
         when(userDetailsService.loadUserByUsername("yameen@example.com")).thenReturn(mockUserDetails);
         when(jwtUtil.generateToken(mockUserDetails)).thenReturn("jwt-token");
 
@@ -102,7 +121,9 @@ class AuthServiceTest {
 
         assertThat(response.getToken()).isEqualTo("jwt-token");
         assertThat(response.getName()).isEqualTo("Yameen");
-        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+        verify(authenticationManager).authenticate(argThat(auth ->
+                auth instanceof UsernamePasswordAuthenticationToken
+                        && auth.getPrincipal().equals("yameen@example.com")));
     }
 
     @Test

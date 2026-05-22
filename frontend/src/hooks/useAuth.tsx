@@ -10,11 +10,31 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+function readStoredUser(): User | null {
+  const stored = localStorage.getItem('user');
+  if (!stored) return null;
+
+  try {
+    const parsed = JSON.parse(stored) as Partial<User>;
+    if (
+      typeof parsed.userId === 'number' &&
+      typeof parsed.name === 'string' &&
+      typeof parsed.email === 'string' &&
+      typeof parsed.token === 'string'
+    ) {
+      return parsed as User;
+    }
+  } catch {
+    // Fall through and clear the broken auth state below.
+  }
+
+  localStorage.removeItem('user');
+  localStorage.removeItem('token');
+  return null;
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const stored = localStorage.getItem('user');
-    return stored ? JSON.parse(stored) : null;
-  });
+  const [user, setUser] = useState<User | null>(readStoredUser);
 
   const login = (userData: User) => {
     setUser(userData);
