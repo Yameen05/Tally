@@ -1,4 +1,4 @@
-# FinTrack
+# Tally
 
 ![Java 17](https://img.shields.io/badge/Java-17-007396?logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2-6DB33F?logo=springboot&logoColor=white)
@@ -6,9 +6,9 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white)
 
-FinTrack is a full-stack personal finance dashboard for tracking transactions, planning monthly budgets, connecting bank accounts through Plaid, and generating AI-assisted spending insights.
+Tally is a full-stack personal finance dashboard for tracking transactions, planning monthly budgets, connecting bank accounts through Plaid, and generating AI-assisted spending insights.
 
-![FinTrack login screen](docs/screenshots/login.png)
+![Tally login screen](docs/screenshots/login.png)
 
 ## Highlights
 
@@ -157,7 +157,7 @@ npm audit
 ## Project Structure
 
 ```text
-fintrack/
+Tally/
 +-- backend/              # Spring Boot API
 |   +-- src/main/java/    # Controllers, services, repositories, security
 |   +-- src/test/java/    # Backend unit and integration tests
