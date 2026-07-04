@@ -1,8 +1,10 @@
 package com.fintrack.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fintrack.dto.PlaidDto;
 import com.fintrack.entity.PlaidItem;
 import com.fintrack.entity.User;
+import com.fintrack.security.PlaidWebhookVerifier;
 import com.fintrack.service.AuthService;
 import com.fintrack.service.PlaidService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,6 +12,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -20,12 +24,15 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/plaid")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Plaid", description = "Connect bank accounts and sync transactions automatically")
 @SecurityRequirement(name = "bearerAuth")
 public class PlaidController {
 
     private final PlaidService plaidService;
     private final AuthService authService;
+    private final PlaidWebhookVerifier webhookVerifier;
+    private final ObjectMapper objectMapper;
 
     @GetMapping("/status")
     @Operation(summary = "Check whether Plaid is configured on this server")
@@ -81,7 +88,25 @@ public class PlaidController {
 
     @PostMapping("/webhook")
     @Operation(summary = "Receive Plaid webhook events", security = {})
-    public ResponseEntity<Void> webhook(@RequestBody Map<String, Object> payload) {
+    public ResponseEntity<Void> webhook(
+            @RequestHeader(value = "Plaid-Verification", required = false) String verification,
+            @RequestBody(required = false) byte[] rawBody) {
+
+        // Verify the request genuinely came from Plaid before doing any work.
+        // The raw bytes must be hashed exactly as received, so we parse JSON only
+        // after the signature and body-hash checks pass.
+        if (rawBody == null || !webhookVerifier.verify(verification, rawBody)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        Map<String, Object> payload;
+        try {
+            payload = objectMapper.readValue(rawBody, Map.class);
+        } catch (Exception e) {
+            log.warn("Malformed Plaid webhook body: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+
         String webhookType = (String) payload.get("webhook_type");
         String webhookCode = (String) payload.get("webhook_code");
         String itemId = (String) payload.get("item_id");
@@ -92,6 +117,7 @@ public class PlaidController {
                 plaidService.syncByPlaidItemId(itemId);
             } catch (Exception e) {
                 // Log but always return 200 so Plaid does not retry indefinitely
+                log.error("Webhook-triggered sync failed for item {}: {}", itemId, e.getMessage());
             }
         }
         return ResponseEntity.ok().build();
