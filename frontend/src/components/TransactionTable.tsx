@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeftRight, DollarSign, Trash2, Download } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { ArrowLeftRight, DollarSign, Trash2, Download, Upload, Search, X } from 'lucide-react';
 import { Transaction } from '../types';
 import { CATEGORY_ICONS, formatDate, formatCurrency } from '../utils/dashboard';
 import { Skeleton, EmptyState } from './common';
+import { useImportTransactions } from '../hooks/useDashboardData';
 
 interface Props {
   transactions: Transaction[];
@@ -38,9 +39,35 @@ function exportCsv(transactions: Transaction[]) {
 
 export default function TransactionTable({ transactions, loading, deletingId, onDelete }: Props) {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const importCsvMutation = useImportTransactions();
 
-  // Reset pagination whenever the transaction list changes (e.g. month switch)
-  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [transactions]);
+  // Reset pagination whenever the underlying list or the filters change
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [transactions, search, typeFilter, categoryFilter]);
+
+  const categories = useMemo(
+    () => [...new Set(transactions.map(t => t.category))].sort(),
+    [transactions]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return transactions.filter(t => {
+      if (typeFilter !== 'ALL' && t.type !== typeFilter) return false;
+      if (categoryFilter !== 'All' && t.category !== categoryFilter) return false;
+      if (!q) return true;
+      return [t.description, t.merchantName, t.notes, t.category]
+        .some(field => field?.toLowerCase().includes(q));
+    });
+  }, [transactions, search, typeFilter, categoryFilter]);
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) importCsvMutation.mutate(file);
+    e.target.value = ''; // allow re-importing the same file
+  };
 
   if (loading) {
     return (
@@ -52,36 +79,92 @@ export default function TransactionTable({ transactions, loading, deletingId, on
     );
   }
 
+  const hasActiveFilters = search.trim() !== '' || typeFilter !== 'ALL' || categoryFilter !== 'All';
+
+  const importControls = (
+    <>
+      <input ref={fileInputRef} type="file" accept=".csv,text/csv" style={{ display: 'none' }}
+        onChange={handleImportFile} />
+      <button style={s.exportBtn} onClick={() => fileInputRef.current?.click()}
+        disabled={importCsvMutation.isPending}
+        title="Import transactions from a CSV file (Date,Description,Category,Type,Amount,Notes)">
+        <Upload size={13} />
+        {importCsvMutation.isPending ? 'Importing…' : 'Import CSV'}
+      </button>
+    </>
+  );
+
   if (transactions.length === 0) {
     return (
       <div style={s.tableCard}>
+        <div style={{ ...s.toolbar, justifyContent: 'flex-end' }}>{importControls}</div>
         <EmptyState
           icon={<ArrowLeftRight size={36} />}
           text="No transactions for this month"
-          sub="Click + Add Transaction to get started"
+          sub="Click + Add Transaction, or import a CSV"
         />
       </div>
     );
   }
 
-  const visible = transactions.slice(0, visibleCount);
-  const remaining = transactions.length - visibleCount;
+  const visible = filtered.slice(0, visibleCount);
+  const remaining = filtered.length - visibleCount;
 
   return (
     <div style={s.tableCard}>
       {/* Toolbar */}
       <div style={s.toolbar}>
-        <span style={s.count}>
-          {visibleCount < transactions.length
-            ? `Showing ${visibleCount} of ${transactions.length}`
-            : `${transactions.length} transaction${transactions.length === 1 ? '' : 's'}`}
-        </span>
-        <button style={s.exportBtn} onClick={() => exportCsv(transactions)} title="Export all transactions as CSV">
-          <Download size={13} />
-          Export CSV
-        </button>
+        <div style={s.filters}>
+          <div style={s.searchWrap}>
+            <Search size={13} style={{ color: 'rgba(255,255,255,0.3)', flexShrink: 0 }} />
+            <input
+              style={s.searchInput}
+              placeholder="Search transactions…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            {search && (
+              <button style={s.clearBtn} onClick={() => setSearch('')} title="Clear search">
+                <X size={12} />
+              </button>
+            )}
+          </div>
+          <select style={s.filterSelect} value={typeFilter}
+            onChange={e => setTypeFilter(e.target.value as typeof typeFilter)}>
+            <option value="ALL">All types</option>
+            <option value="INCOME">Income</option>
+            <option value="EXPENSE">Expense</option>
+          </select>
+          <select style={s.filterSelect} value={categoryFilter}
+            onChange={e => setCategoryFilter(e.target.value)}>
+            <option value="All">All categories</option>
+            {categories.map(c => <option key={c}>{c}</option>)}
+          </select>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={s.count}>
+            {hasActiveFilters
+              ? `${filtered.length} of ${transactions.length}`
+              : `${transactions.length} transaction${transactions.length === 1 ? '' : 's'}`}
+          </span>
+          {importControls}
+          <button style={s.exportBtn} onClick={() => exportCsv(filtered)}
+            title="Export the listed transactions as CSV">
+            <Download size={13} />
+            Export CSV
+          </button>
+        </div>
       </div>
 
+      {filtered.length === 0 && (
+        <EmptyState
+          icon={<Search size={32} />}
+          text="No transactions match your filters"
+          sub="Try a different search or clear the filters"
+        />
+      )}
+
+      {filtered.length > 0 && (
       <table style={s.table}>
         <thead>
           <tr>
@@ -143,6 +226,7 @@ export default function TransactionTable({ transactions, loading, deletingId, on
           ))}
         </tbody>
       </table>
+      )}
 
       {/* Load more */}
       {remaining > 0 && (
@@ -164,9 +248,29 @@ const s: Record<string, React.CSSProperties> = {
   },
   toolbar: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '10px 20px 6px', borderBottom: '1px solid rgba(255,255,255,0.05)',
+    padding: '10px 20px 10px', borderBottom: '1px solid rgba(255,255,255,0.05)',
+    gap: 12, flexWrap: 'wrap',
   },
-  count: { fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 500 },
+  count: { fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 500, whiteSpace: 'nowrap' },
+  filters: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
+  searchWrap: {
+    display: 'flex', alignItems: 'center', gap: 7,
+    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 8, padding: '6px 10px', minWidth: 200,
+  },
+  searchInput: {
+    background: 'transparent', border: 'none', outline: 'none',
+    color: '#e2e8f0', fontSize: 13, width: '100%', fontFamily: 'inherit',
+  },
+  clearBtn: {
+    background: 'transparent', border: 'none', cursor: 'pointer',
+    color: 'rgba(255,255,255,0.35)', display: 'flex', padding: 0,
+  },
+  filterSelect: {
+    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 8, padding: '6px 10px', color: 'rgba(255,255,255,0.7)',
+    fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', outline: 'none',
+  },
   exportBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '6px 12px', borderRadius: 7,

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, ReactNode } from 'react';
 import { CheckCircle2, AlertTriangle } from 'lucide-react';
 
-type ToastKind = 'success' | 'error';
+type ToastKind = 'success' | 'error' | 'warning';
 
 interface ToastItem {
   id: number;
@@ -12,6 +12,7 @@ interface ToastItem {
 interface ToastApi {
   success: (message: string) => void;
   error: (message: string) => void;
+  warning: (message: string) => void;
 }
 
 const ToastContext = createContext<ToastApi | null>(null);
@@ -43,6 +44,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const api = useMemo<ToastApi>(() => ({
     success: (message) => push('success', message),
     error: (message) => push('error', message),
+    warning: (message) => push('warning', message),
   }), [push]);
 
   return (
@@ -50,10 +52,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div style={s.stack} aria-live="polite">
         {toasts.map(t => (
-          <div key={t.id} style={{ ...s.toast, ...(t.kind === 'error' ? s.error : s.success) }} role="status">
-            {t.kind === 'error'
-              ? <AlertTriangle size={15} color="#f87171" style={{ flexShrink: 0 }} />
-              : <CheckCircle2 size={15} color="#34d399" style={{ flexShrink: 0 }} />}
+          <div key={t.id} style={{ ...s.toast, ...s[t.kind] }} role="status">
+            {t.kind === 'success'
+              ? <CheckCircle2 size={15} color="#34d399" style={{ flexShrink: 0 }} />
+              : <AlertTriangle size={15} color={t.kind === 'error' ? '#f87171' : '#fbbf24'} style={{ flexShrink: 0 }} />}
             <span>{t.message}</span>
           </div>
         ))}
@@ -83,4 +85,5 @@ const s: Record<string, React.CSSProperties> = {
   },
   success: { borderColor: 'rgba(16,185,129,0.35)' },
   error: { borderColor: 'rgba(239,68,68,0.35)' },
+  warning: { borderColor: 'rgba(245,158,11,0.4)' },
 };

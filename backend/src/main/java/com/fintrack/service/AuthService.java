@@ -4,9 +4,11 @@ import com.fintrack.dto.AuthDto;
 import com.fintrack.entity.User;
 import com.fintrack.repository.UserRepository;
 import com.fintrack.security.JwtUtil;
+import com.fintrack.security.LoginAttemptService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -26,6 +28,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final UserDetailsServiceImpl userDetailsService;
     private final RefreshTokenService refreshTokenService;
+    private final LoginAttemptService loginAttemptService;
 
     /** An access token response plus the refresh token destined for the httpOnly cookie. */
     public record AuthSession(AuthDto.AuthResponse response, RefreshTokenService.IssuedToken refreshToken) {
@@ -49,9 +52,16 @@ public class AuthService {
 
     public AuthSession login(AuthDto.LoginRequest request) {
         String email = normalizeEmail(request.getEmail());
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(email, request.getPassword())
-        );
+        loginAttemptService.checkNotLocked(email);
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, request.getPassword())
+            );
+        } catch (BadCredentialsException e) {
+            loginAttemptService.recordFailure(email);
+            throw e;
+        }
+        loginAttemptService.recordSuccess(email);
 
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
