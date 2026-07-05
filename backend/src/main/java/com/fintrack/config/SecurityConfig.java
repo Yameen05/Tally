@@ -48,6 +48,16 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**", "/api/plaid/webhook", "/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
                 .anyRequest().authenticated()
             )
+            .headers(headers -> headers
+                // API responses never need to run scripts or be framed; the
+                // SPA's own CSP lives in nginx.conf. unsafe-inline styles keep
+                // Swagger UI working in dev profiles.
+                .contentSecurityPolicy(csp -> csp.policyDirectives(
+                    "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'"))
+                .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000))
+                .referrerPolicy(referrer -> referrer.policy(
+                    org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+            )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

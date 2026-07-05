@@ -3,6 +3,7 @@ package com.fintrack.controller;
 import com.fintrack.dto.TransactionDto;
 import com.fintrack.entity.User;
 import com.fintrack.service.AuthService;
+import com.fintrack.service.TransactionImportService;
 import com.fintrack.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -28,6 +29,7 @@ import java.util.List;
 public class TransactionController {
 
     private final TransactionService transactionService;
+    private final TransactionImportService transactionImportService;
     private final AuthService authService;
 
     @PostMapping
@@ -75,5 +77,18 @@ public class TransactionController {
         User user = authService.getCurrentUser(auth.getName());
         transactionService.delete(id, user.getId());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(value = "/import", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Import transactions from a CSV file (Date,Description,Category,Type,Amount,Notes)")
+    public ResponseEntity<TransactionImportService.ImportResult> importCsv(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            Authentication auth) throws java.io.IOException {
+        if (file.isEmpty()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "The uploaded file is empty");
+        }
+        User user = authService.getCurrentUser(auth.getName());
+        return ResponseEntity.ok(transactionImportService.importCsv(file.getInputStream(), user));
     }
 }

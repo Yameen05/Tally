@@ -21,6 +21,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     void deleteByPlaidTransactionId(String plaidTransactionId);
 
+    // Duplicate check for CSV import: same user, day, description, amount, and type.
+    boolean existsByUserIdAndDateAndDescriptionAndAmountAndType(
+            Long userId, LocalDate date, String description, BigDecimal amount, TransactionType type);
+
     List<Transaction> findByUserIdOrderByDateDesc(Long userId);
 
     Page<Transaction> findByUserIdOrderByDateDesc(Long userId, Pageable pageable);

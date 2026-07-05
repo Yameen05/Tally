@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { analyticsApi, budgetApi, plaidApi, transactionApi } from '../services/api';
+import api, { analyticsApi, budgetApi, plaidApi, transactionApi } from '../services/api';
 import {
   MonthlySummary, Transaction, TransactionRequest, BudgetRequest,
   ConnectedItem, RecurringItem, NetWorthPoint,
@@ -64,10 +64,31 @@ function useInvalidateMonthData() {
 
 export function useCreateTransaction() {
   const invalidate = useInvalidateMonthData();
+  const queryClient = useQueryClient();
   const toast = useToast();
   return useMutation({
     mutationFn: (data: TransactionRequest) => transactionApi.create(data),
-    onSuccess: () => { invalidate(); toast.success('Transaction added'); },
+    onSuccess: (_res, variables) => {
+      // Warn when this expense pushes its category budget over 80% or 100%.
+      // Uses the cached summary from before the invalidation refetch lands.
+      if (variables.type === 'EXPENSE') {
+        const txDate = new Date(variables.date + 'T00:00:00');
+        const summary = queryClient.getQueryData<MonthlySummary>(
+          ['summary', txDate.getFullYear(), txDate.getMonth() + 1]);
+        const budget = summary?.budgets.find(b => b.category === variables.category);
+        if (budget && budget.limitAmount > 0) {
+          const oldPct = (budget.spentAmount / budget.limitAmount) * 100;
+          const newPct = ((budget.spentAmount + variables.amount) / budget.limitAmount) * 100;
+          if (oldPct < 100 && newPct >= 100) {
+            toast.warning(`You're now over your ${variables.category} budget (${newPct.toFixed(0)}% used).`);
+          } else if (oldPct < 80 && newPct >= 80) {
+            toast.warning(`Heads up: ${variables.category} budget is ${newPct.toFixed(0)}% used.`);
+          }
+        }
+      }
+      invalidate();
+      toast.success('Transaction added');
+    },
     onError: (err) => toast.error(apiErrorMessage(err, 'Could not add the transaction.')),
   });
 }
@@ -79,6 +100,39 @@ export function useDeleteTransaction() {
     mutationFn: (id: number) => transactionApi.delete(id),
     onSuccess: () => { invalidate(); toast.success('Transaction deleted'); },
     onError: (err) => toast.error(apiErrorMessage(err, 'Could not delete the transaction.')),
+  });
+}
+
+interface ImportResult {
+  imported: number;
+  duplicates: number;
+  failed: number;
+  errors: { line: number; message: string }[];
+}
+
+export function useImportTransactions() {
+  const invalidate = useInvalidateMonthData();
+  const toast = useToast();
+  return useMutation({
+    mutationFn: (file: File): Promise<ImportResult> => {
+      const form = new FormData();
+      form.append('file', file);
+      return api.post<ImportResult>('/transactions/import', form).then(r => r.data);
+    },
+    onSuccess: (result) => {
+      invalidate();
+      const parts = [`${result.imported} imported`];
+      if (result.duplicates) parts.push(`${result.duplicates} duplicate${result.duplicates === 1 ? '' : 's'} skipped`);
+      if (result.failed) parts.push(`${result.failed} failed`);
+      const message = `Import finished: ${parts.join(', ')}`;
+      if (result.failed > 0) {
+        const firstError = result.errors[0];
+        toast.error(`${message}. First error (line ${firstError?.line}): ${firstError?.message}`);
+      } else {
+        toast.success(message);
+      }
+    },
+    onError: (err) => toast.error(apiErrorMessage(err, 'Import failed. Check the file format.')),
   });
 }
 
