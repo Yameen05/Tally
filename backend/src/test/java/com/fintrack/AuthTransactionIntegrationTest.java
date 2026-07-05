@@ -24,6 +24,17 @@ class AuthTransactionIntegrationTest {
     private static String token;
     private static Long transactionId;
 
+    @BeforeEach
+    void disableClientCookieJar() {
+        // Cookie handling must stay explicit: the refresh-rotation tests send
+        // stale cookies on purpose, which an automatic cookie jar would replace.
+        rest.getRestTemplate().setRequestFactory(
+                new org.springframework.http.client.HttpComponentsClientHttpRequestFactory(
+                        org.apache.hc.client5.http.impl.classic.HttpClients.custom()
+                                .disableCookieManagement()
+                                .build()));
+    }
+
     private static final String EMAIL = "inttest@example.com";
     private static final String PASSWORD = "testpassword123";
 
@@ -116,5 +127,57 @@ class AuthTransactionIntegrationTest {
     void accessWithoutToken_shouldBeDenied() {
         ResponseEntity<String> response = rest.getForEntity("/api/transactions", String.class);
         assertThat(response.getStatusCode()).isIn(HttpStatus.FORBIDDEN, HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    @Order(8)
+    void refreshFlow_rotatesCookieAndRejectsReplay() {
+        // Login sets the refresh cookie
+        Map<String, String> body = Map.of("email", EMAIL, "password", PASSWORD);
+        ResponseEntity<Map> login = rest.postForEntity("/api/auth/login", body, Map.class);
+        String originalCookie = extractRefreshCookie(login);
+        assertThat(originalCookie).isNotBlank();
+        assertThat(login.getHeaders().getFirst(HttpHeaders.SET_COOKIE)).contains("HttpOnly");
+
+        // Refresh returns a new access token and rotates the cookie
+        ResponseEntity<Map> refreshed = rest.exchange("/api/auth/refresh", HttpMethod.POST,
+                withCookie(originalCookie), Map.class);
+        assertThat(refreshed.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat((String) refreshed.getBody().get("token")).isNotBlank();
+        String rotatedCookie = extractRefreshCookie(refreshed);
+        assertThat(rotatedCookie).isNotEqualTo(originalCookie);
+
+        // Replaying the consumed cookie is rejected (and revokes the family)
+        ResponseEntity<Map> replay = rest.exchange("/api/auth/refresh", HttpMethod.POST,
+                withCookie(originalCookie), Map.class);
+        assertThat(replay.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+
+        // The rotated cookie was revoked along with the rest of the family
+        ResponseEntity<Map> afterReplay = rest.exchange("/api/auth/refresh", HttpMethod.POST,
+                withCookie(rotatedCookie), Map.class);
+        assertThat(afterReplay.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    @Order(9)
+    void refreshWithoutCookie_shouldReturn401() {
+        ResponseEntity<Map> response = rest.postForEntity("/api/auth/refresh", null, Map.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    private HttpEntity<Void> withCookie(String refreshCookieValue) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.COOKIE, "tally_refresh=" + refreshCookieValue);
+        return new HttpEntity<>(headers);
+    }
+
+    private String extractRefreshCookie(ResponseEntity<?> response) {
+        List<String> cookies = response.getHeaders().get(HttpHeaders.SET_COOKIE);
+        assertThat(cookies).isNotNull();
+        return cookies.stream()
+                .filter(c -> c.startsWith("tally_refresh="))
+                .map(c -> c.substring("tally_refresh=".length(), c.indexOf(';')))
+                .findFirst()
+                .orElseThrow();
     }
 }

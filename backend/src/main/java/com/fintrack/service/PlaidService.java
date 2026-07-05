@@ -39,6 +39,7 @@ public class PlaidService {
     private final PlaidAccountRepository plaidAccountRepository;
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
+    private final NetWorthService netWorthService;
 
     @Value("${plaid.client-id}")
     private String clientId;
@@ -54,13 +55,15 @@ public class PlaidService {
                         PlaidItemRepository plaidItemRepository,
                         PlaidAccountRepository plaidAccountRepository,
                         TransactionRepository transactionRepository,
-                        UserRepository userRepository) {
+                        UserRepository userRepository,
+                        NetWorthService netWorthService) {
         this.plaidWebClient = plaidWebClient;
         this.encryptionService = encryptionService;
         this.plaidItemRepository = plaidItemRepository;
         this.plaidAccountRepository = plaidAccountRepository;
         this.transactionRepository = transactionRepository;
         this.userRepository = userRepository;
+        this.netWorthService = netWorthService;
     }
 
     // ─── Public API ─────────────────────────────────────────────────────────
@@ -151,6 +154,7 @@ public class PlaidService {
         String accessToken = encryptionService.decrypt(item.getAccessTokenEncrypted());
         syncAccounts(item, accessToken);
         syncTransactionsInternal(item, accessToken);
+        netWorthService.snapshot(item.getUser());
     }
 
     @Transactional
@@ -161,12 +165,17 @@ public class PlaidService {
         for (PlaidItem item : items) {
             try {
                 String accessToken = encryptionService.decrypt(item.getAccessTokenEncrypted());
+                // Refresh balances too so the net-worth snapshot reflects this sync.
+                syncAccounts(item, accessToken);
                 totalNew += syncTransactionsInternal(item, accessToken);
             } catch (Exception e) {
                 log.error("Sync failed for item {}: {}", item.getItemId(), e.getMessage());
                 item.setSyncError(e.getMessage());
                 plaidItemRepository.save(item);
             }
+        }
+        if (!items.isEmpty()) {
+            netWorthService.snapshot(items.get(0).getUser());
         }
         return totalNew;
     }
