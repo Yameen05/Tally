@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
+import { apiErrorMessage } from '../components/Toast';
 import { TrendingUp, Shield, Zap, PieChart, Eye, EyeOff } from 'lucide-react';
 
 export default function AuthPage() {
@@ -24,7 +25,8 @@ export default function AuthPage() {
       login(res.data);
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+      // Field-level validation messages (e.g. password rules) beat the generic one.
+      setError(apiErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -46,7 +48,7 @@ export default function AuthPage() {
             <div style={s.brandIcon}>
               <TrendingUp size={22} color="#fff" />
             </div>
-            <span style={s.brandName}>FinTrack</span>
+            <span style={s.brandName}>Tally</span>
           </div>
 
           <div style={s.heroText}>

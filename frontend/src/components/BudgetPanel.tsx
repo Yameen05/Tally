@@ -3,45 +3,40 @@ import { Target, DollarSign, Flame, CheckCircle2, AlertTriangle, Plus, Trash2, X
 import { MonthlySummary, CATEGORIES } from '../types';
 import { CATEGORY_ICONS, formatCurrency } from '../utils/dashboard';
 import { Skeleton, EmptyState } from './common';
-import { budgetApi } from '../services/api';
+import { useSaveBudget, useDeleteBudget } from '../hooks/useDashboardData';
 
 interface Props {
   summary: MonthlySummary | null;
   loading: boolean;
   month: number;
   year: number;
-  onRefresh: () => void;
 }
 
-export default function BudgetPanel({ summary, loading, month, year, onRefresh }: Props) {
+export default function BudgetPanel({ summary, loading, month, year }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ category: CATEGORIES[0], limitAmount: '' });
-  const [submitting, setSubmitting] = useState(false);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const saveBudget = useSaveBudget();
+  const deleteBudget = useDeleteBudget();
+
+  const submitting = saveBudget.isPending;
+  const deletingId = deleteBudget.isPending ? (deleteBudget.variables ?? null) : null;
 
   const existingCategories = new Set(summary?.budgets.map(b => b.category) ?? []);
   const availableCategories = CATEGORIES.filter(c => !existingCategories.has(c));
 
-  const handleAdd = async (e: React.FormEvent) => {
+  const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     const limit = parseFloat(form.limitAmount);
     if (isNaN(limit) || limit <= 0 || submitting) return;
-    setSubmitting(true);
-    try {
-      await budgetApi.createOrUpdate({ category: form.category, limitAmount: limit, month, year });
-      setShowForm(false);
-      setForm({ category: availableCategories[0] ?? CATEGORIES[0], limitAmount: '' });
-      onRefresh();
-    } catch (e) { console.error(e); }
-    finally { setSubmitting(false); }
+    saveBudget.mutate({ category: form.category, limitAmount: limit, month, year }, {
+      onSuccess: () => {
+        setShowForm(false);
+        setForm({ category: availableCategories[0] ?? CATEGORIES[0], limitAmount: '' });
+      },
+    });
   };
 
-  const handleDelete = async (id: number) => {
-    setDeletingId(id);
-    try { await budgetApi.delete(id); onRefresh(); }
-    catch (e) { console.error(e); }
-    finally { setDeletingId(null); }
-  };
+  const handleDelete = (id: number) => deleteBudget.mutate(id);
 
   if (loading) {
     return (

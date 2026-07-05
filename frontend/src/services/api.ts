@@ -1,21 +1,65 @@
-import axios from 'axios';
-import { TransactionRequest, BudgetRequest, PagedResponse, Transaction } from '../types';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { TransactionRequest, BudgetRequest, PagedResponse, Transaction, AuthResponse } from '../types';
+
+// The access token lives only in memory: XSS can't lift it from storage, and
+// page reloads recover the session via the httpOnly refresh cookie.
+let accessToken: string | null = null;
+
+export const setAccessToken = (token: string | null) => {
+  accessToken = token;
+};
+
+// Registered by AuthProvider so an unrecoverable 401 clears React auth state
+// (which routes back to /login) instead of hard-reloading the page.
+let onSessionExpired: (() => void) | null = null;
+export const setOnSessionExpired = (handler: (() => void) | null) => {
+  onSessionExpired = handler;
+};
 
 const api = axios.create({ baseURL: '/api' });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
   return config;
 });
 
+// All concurrent 401s share one refresh call; the cookie rotates on every use,
+// so parallel refreshes would revoke each other.
+let refreshPromise: Promise<AuthResponse | null> | null = null;
+
+export function refreshSession(): Promise<AuthResponse | null> {
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post<AuthResponse>('/api/auth/refresh')
+      .then((res) => {
+        accessToken = res.data.token;
+        return res.data;
+      })
+      .catch(() => null)
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
+
+interface RetriableConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
+
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
-    if (err.response?.status === 401) {
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+  async (err: AxiosError) => {
+    const original = err.config as RetriableConfig | undefined;
+    const isAuthCall = original?.url?.startsWith('/auth');
+    if (err.response?.status === 401 && original && !original._retry && !isAuthCall) {
+      original._retry = true;
+      const session = await refreshSession();
+      if (session) {
+        original.headers.Authorization = `Bearer ${session.token}`;
+        return api(original);
+      }
+      onSessionExpired?.();
     }
     return Promise.reject(err);
   }
@@ -23,9 +67,10 @@ api.interceptors.response.use(
 
 export const authApi = {
   register: (data: { name: string; email: string; password: string }) =>
-    api.post('/auth/register', data),
+    api.post<AuthResponse>('/auth/register', data),
   login: (data: { email: string; password: string }) =>
-    api.post('/auth/login', data),
+    api.post<AuthResponse>('/auth/login', data),
+  logout: () => api.post('/auth/logout'),
 };
 
 export const transactionApi = {
@@ -50,6 +95,11 @@ export const budgetApi = {
 export const insightApi = {
   getInsights: (year: number, month: number) =>
     api.get(`/insights/${year}/${month}`),
+};
+
+export const analyticsApi = {
+  recurring: () => api.get('/recurring'),
+  netWorth: (days = 90) => api.get('/networth', { params: { days } }),
 };
 
 export const plaidApi = {

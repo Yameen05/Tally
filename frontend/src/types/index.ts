@@ -40,7 +40,36 @@ export interface User {
   userId: number;
   name: string;
   email: string;
+}
+
+/** Response from login/register/refresh; token is the short-lived access token. */
+export interface AuthResponse {
   token: string;
+  name: string;
+  email: string;
+  userId: number;
+}
+
+export type Cadence = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
+
+export interface RecurringItem {
+  name: string;
+  category: string;
+  cadence: Cadence;
+  lastAmount: number;
+  averageAmount: number;
+  monthlyEstimate: number;
+  lastDate: string;
+  nextDueDate: string;
+  occurrences: number;
+  priceChangePct: number | null;
+}
+
+export interface NetWorthPoint {
+  date: string;
+  assets: number;
+  liabilities: number;
+  netWorth: number;
 }
 
 export interface ConnectedAccount {

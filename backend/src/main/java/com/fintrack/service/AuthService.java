@@ -25,8 +25,13 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final UserDetailsServiceImpl userDetailsService;
+    private final RefreshTokenService refreshTokenService;
 
-    public AuthDto.AuthResponse register(AuthDto.RegisterRequest request) {
+    /** An access token response plus the refresh token destined for the httpOnly cookie. */
+    public record AuthSession(AuthDto.AuthResponse response, RefreshTokenService.IssuedToken refreshToken) {
+    }
+
+    public AuthSession register(AuthDto.RegisterRequest request) {
         String email = normalizeEmail(request.getEmail());
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
@@ -39,14 +44,10 @@ public class AuthService {
                 .build();
 
         userRepository.save(user);
-
-        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
-        String token = jwtUtil.generateToken(userDetails);
-
-        return new AuthDto.AuthResponse(token, user.getName(), user.getEmail(), user.getId());
+        return createSession(user);
     }
 
-    public AuthDto.AuthResponse login(AuthDto.LoginRequest request) {
+    public AuthSession login(AuthDto.LoginRequest request) {
         String email = normalizeEmail(request.getEmail());
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(email, request.getPassword())
@@ -54,16 +55,38 @@ public class AuthService {
 
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        return createSession(user);
+    }
 
+    /** Rotates the presented refresh token and mints a fresh access token. */
+    public AuthSession refresh(String rawRefreshToken) {
+        RefreshTokenService.RotationResult rotation = refreshTokenService.rotate(rawRefreshToken);
+        User user = rotation.user();
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
-        String token = jwtUtil.generateToken(userDetails);
+        String accessToken = jwtUtil.generateToken(userDetails);
+        return new AuthSession(
+                new AuthDto.AuthResponse(accessToken, user.getName(), user.getEmail(), user.getId()),
+                rotation.newToken());
+    }
 
-        return new AuthDto.AuthResponse(token, user.getName(), user.getEmail(), user.getId());
+    public void logout(String rawRefreshToken) {
+        if (rawRefreshToken != null && !rawRefreshToken.isBlank()) {
+            refreshTokenService.revoke(rawRefreshToken);
+        }
     }
 
     public User getCurrentUser(String email) {
         return userRepository.findByEmailIgnoreCase(normalizeEmail(email))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+    }
+
+    private AuthSession createSession(User user) {
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+        String accessToken = jwtUtil.generateToken(userDetails);
+        RefreshTokenService.IssuedToken refreshToken = refreshTokenService.issue(user);
+        return new AuthSession(
+                new AuthDto.AuthResponse(accessToken, user.getName(), user.getEmail(), user.getId()),
+                refreshToken);
     }
 
     private String normalizeEmail(String email) {

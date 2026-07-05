@@ -32,6 +32,7 @@ class AuthServiceTest {
     @Mock private JwtUtil jwtUtil;
     @Mock private AuthenticationManager authenticationManager;
     @Mock private UserDetailsServiceImpl userDetailsService;
+    @Mock private RefreshTokenService refreshTokenService;
 
     @InjectMocks
     private AuthService authService;
@@ -66,11 +67,12 @@ class AuthServiceTest {
         request.setEmail("yameen@example.com");
         request.setPassword("secret123");
 
-        AuthDto.AuthResponse response = authService.register(request);
+        AuthService.AuthSession session = authService.register(request);
 
-        assertThat(response.getToken()).isEqualTo("jwt-token");
-        assertThat(response.getEmail()).isEqualTo("yameen@example.com");
+        assertThat(session.response().getToken()).isEqualTo("jwt-token");
+        assertThat(session.response().getEmail()).isEqualTo("yameen@example.com");
         verify(userRepository).save(any(User.class));
+        verify(refreshTokenService).issue(any(User.class));
     }
 
     @Test
@@ -117,7 +119,7 @@ class AuthServiceTest {
         request.setEmail("yameen@example.com");
         request.setPassword("secret123");
 
-        AuthDto.AuthResponse response = authService.login(request);
+        AuthDto.AuthResponse response = authService.login(request).response();
 
         assertThat(response.getToken()).isEqualTo("jwt-token");
         assertThat(response.getName()).isEqualTo("Yameen");

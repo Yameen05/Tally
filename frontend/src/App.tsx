@@ -10,7 +10,9 @@ function PrivateRoute({ children }: { children: JSX.Element }) {
 }
 
 function AppRoutes() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, initializing } = useAuth();
+  // Wait for the silent session refresh so a reload doesn't flash the login page.
+  if (initializing) return null;
   return (
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <AuthPage />} />
