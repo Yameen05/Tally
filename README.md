@@ -8,7 +8,11 @@
 
 Tally is a full-stack personal finance dashboard for tracking transactions, planning monthly budgets, connecting bank accounts through Plaid, and generating AI-assisted spending insights.
 
-![Tally login screen](docs/screenshots/login.png)
+## Screenshots
+
+![Tally dashboard overview](docs/screenshots/dashboard.png)
+
+![Tally sign-in screen](docs/screenshots/login.png)
 
 ## Highlights
 
