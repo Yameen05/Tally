@@ -54,7 +54,7 @@ export default function AccountsTab({ items, plaidConfigured, onConnected, onDis
   return (
     <div className="fade-in">
       <div style={d.accountsHeader}>
-        <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>
+        <span style={{ color: 'var(--text-3)', fontSize: 13 }}>
           {items.length} bank{items.length === 1 ? '' : 's'} connected ·{' '}
           {accountCount} account{accountCount === 1 ? '' : 's'}
         </span>
@@ -85,7 +85,7 @@ export default function AccountsTab({ items, plaidConfigured, onConnected, onDis
             )}
             <div style={d.accountList}>
               {item.accounts.length === 0 ? (
-                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>No accounts yet — try syncing.</p>
+                <p style={{ color: 'var(--text-3)', fontSize: 13 }}>No accounts yet — try syncing.</p>
               ) : (
                 item.accounts.map(acc => (
                   <div key={acc.id} style={d.accountRow}>

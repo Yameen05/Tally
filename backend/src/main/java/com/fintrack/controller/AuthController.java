@@ -65,6 +65,37 @@ public class AuthController {
                 .build();
     }
 
+    @PostMapping("/verify-email")
+    @Operation(summary = "Confirm an email address using the token from the verification email")
+    public ResponseEntity<Void> verifyEmail(@Valid @RequestBody AuthDto.VerifyEmailRequest request) {
+        authService.verifyEmail(request.getToken());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/resend-verification")
+    @Operation(summary = "Send a fresh verification email to the logged-in user")
+    public ResponseEntity<Void> resendVerification(org.springframework.security.core.Authentication auth) {
+        if (auth == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login required");
+        }
+        authService.resendVerification(auth.getName());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Email a password-reset link; responds 204 whether or not the email exists")
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody AuthDto.ForgotPasswordRequest request) {
+        authService.forgotPassword(request.getEmail());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(summary = "Set a new password using the token from the reset email; revokes all sessions")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody AuthDto.ResetPasswordRequest request) {
+        authService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.noContent().build();
+    }
+
     private ResponseEntity<AuthDto.AuthResponse> withRefreshCookie(AuthService.AuthSession session) {
         ResponseCookie cookie = refreshCookie(session.refreshToken().rawToken(), session.refreshToken().maxAge());
         return ResponseEntity.ok()

@@ -121,7 +121,7 @@ export default function BudgetPanel({ summary, loading, month, year }: Props) {
                   </div>
                   <div style={{ textAlign: 'center' }}>
                     <span style={s.amtLabel}>Remaining</span>
-                    <span style={{ ...s.amtVal, color: overBudget ? '#ef4444' : 'rgba(255,255,255,0.7)' }}>
+                    <span style={{ ...s.amtVal, color: overBudget ? '#ef4444' : 'var(--text-2)' }}>
                       {formatCurrency(Math.max(b.remaining, 0))}
                     </span>
                   </div>
@@ -175,11 +175,11 @@ export default function BudgetPanel({ summary, loading, month, year }: Props) {
 }
 
 const focusStyle = { borderColor: 'rgba(99,102,241,0.6)', boxShadow: '0 0 0 3px rgba(99,102,241,0.12)' };
-const blurStyle = { borderColor: 'rgba(255,255,255,0.1)', boxShadow: 'none' };
+const blurStyle = { borderColor: 'var(--border-strong)', boxShadow: 'none' };
 
 const s: Record<string, React.CSSProperties> = {
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  headerLabel: { fontSize: 13, color: 'rgba(255,255,255,0.4)' },
+  headerLabel: { fontSize: 13, color: 'var(--text-3)' },
   addBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '8px 14px', borderRadius: 9, border: 'none',
@@ -188,7 +188,7 @@ const s: Record<string, React.CSSProperties> = {
   },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 },
   card: {
-    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+    background: 'var(--surface-1)', border: '1px solid var(--border)',
     borderRadius: 16, padding: '20px 22px',
   },
   top: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
@@ -197,23 +197,23 @@ const s: Record<string, React.CSSProperties> = {
     width: 32, height: 32, borderRadius: 8,
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  catName: { fontSize: 15, fontWeight: 600, color: '#e2e8f0' },
+  catName: { fontSize: 15, fontWeight: 600, color: 'var(--text-1)' },
   pctLabel: { fontSize: 15, fontWeight: 700 },
   deleteBtn: {
     background: 'transparent', border: 'none', cursor: 'pointer',
-    color: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center',
+    color: 'var(--text-3)', display: 'flex', alignItems: 'center',
     padding: 4, borderRadius: 5, marginLeft: 2,
   },
   spinnerSm: {
     width: 12, height: 12, borderRadius: '50%',
-    border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.5)',
+    border: '2px solid var(--border-strong)', borderTopColor: 'var(--text-2)',
     animation: 'spin 0.6s linear infinite',
   },
-  track: { height: 7, borderRadius: 4, background: 'rgba(255,255,255,0.07)', marginBottom: 14, overflow: 'hidden' },
+  track: { height: 7, borderRadius: 4, background: 'var(--border)', marginBottom: 14, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 4, transition: 'width 0.5s ease' },
   amounts: { display: 'flex', justifyContent: 'space-between' },
   amtLabel: {
-    display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 500,
+    display: 'block', fontSize: 11, color: 'var(--text-3)', fontWeight: 500,
     marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em',
   },
   amtVal: {
@@ -225,26 +225,26 @@ const s: Record<string, React.CSSProperties> = {
     display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 24,
   },
   modal: {
-    background: '#0f0f24', border: '1px solid rgba(255,255,255,0.1)',
+    background: 'var(--surface-2)', border: '1px solid var(--border-strong)',
     borderRadius: 18, padding: '28px 32px', width: '100%', maxWidth: 400,
     boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
   },
   modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  modalTitle: { fontSize: 18, fontWeight: 700, color: '#fff', letterSpacing: '-0.3px' },
+  modalTitle: { fontSize: 18, fontWeight: 700, color: 'var(--text-1)', letterSpacing: '-0.3px' },
   closeBtn: {
-    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 8, cursor: 'pointer', color: 'rgba(255,255,255,0.5)', display: 'flex', padding: 7,
+    background: 'var(--border)', border: '1px solid var(--border-strong)',
+    borderRadius: 8, cursor: 'pointer', color: 'var(--text-2)', display: 'flex', padding: 7,
   },
   formField: { display: 'flex', flexDirection: 'column', gap: 7 },
-  formLabel: { fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  formLabel: { fontSize: 12, fontWeight: 600, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.05em' },
   formInput: {
-    padding: '11px 14px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)',
-    background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 14,
+    padding: '11px 14px', borderRadius: 9, border: '1px solid var(--border-strong)',
+    background: 'var(--input-bg)', color: 'var(--text-1)', fontSize: 14,
     outline: 'none', transition: 'border-color 0.15s, box-shadow 0.15s', fontFamily: 'inherit',
   },
   cancelBtn: {
-    padding: '10px 18px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)',
-    background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)', fontSize: 14, fontWeight: 500, cursor: 'pointer',
+    padding: '10px 18px', borderRadius: 9, border: '1px solid var(--border-strong)',
+    background: 'var(--input-bg)', color: 'var(--text-2)', fontSize: 14, fontWeight: 500, cursor: 'pointer',
   },
   confirmBtn: {
     padding: '10px 20px', borderRadius: 9, border: 'none',

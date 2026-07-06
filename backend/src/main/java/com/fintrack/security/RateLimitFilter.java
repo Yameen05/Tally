@@ -24,7 +24,10 @@ import java.util.concurrent.atomic.AtomicLong;
 @Order(Integer.MIN_VALUE + 10)
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private static final int MAX_REQUESTS = 10;
+    /** Configurable so tests (which fire many auth requests from one IP) can raise it. */
+    @Value("${security.auth-rate-limit:10}")
+    private int MAX_REQUESTS;
+
     private static final long WINDOW_MS = 60_000;
     private static final int TOO_MANY_REQUESTS_STATUS = 429;
 

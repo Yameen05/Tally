@@ -44,5 +44,31 @@ public class AuthDto {
         private String name;
         private String email;
         private Long userId;
+        private boolean emailVerified;
+    }
+
+    @Data
+    public static class ForgotPasswordRequest {
+        @Email
+        @NotBlank
+        private String email;
+    }
+
+    @Data
+    public static class ResetPasswordRequest {
+        @NotBlank
+        private String token;
+
+        @NotBlank(message = "Password is required")
+        @Size(min = 8, max = 72, message = "Password must be between 8 and 72 characters")
+        @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$",
+                 message = "Password must contain at least one letter and one number")
+        private String newPassword;
+    }
+
+    @Data
+    public static class VerifyEmailRequest {
+        @NotBlank
+        private String token;
     }
 }

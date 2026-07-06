@@ -78,8 +78,8 @@ const s: Record<string, React.CSSProperties> = {
   toast: {
     display: 'flex', alignItems: 'flex-start', gap: 10,
     padding: '12px 16px', borderRadius: 12,
-    background: '#14142c', border: '1px solid rgba(255,255,255,0.12)',
-    color: '#e2e8f0', fontSize: 13, lineHeight: 1.45,
+    background: 'var(--tooltip-bg)', border: '1px solid var(--border-strong)',
+    color: 'var(--text-1)', fontSize: 13, lineHeight: 1.45,
     boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
     animation: 'fade-in 0.2s ease',
   },

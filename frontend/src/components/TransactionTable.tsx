@@ -116,7 +116,7 @@ export default function TransactionTable({ transactions, loading, deletingId, on
       <div style={s.toolbar}>
         <div style={s.filters}>
           <div style={s.searchWrap}>
-            <Search size={13} style={{ color: 'rgba(255,255,255,0.3)', flexShrink: 0 }} />
+            <Search size={13} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
             <input
               style={s.searchInput}
               placeholder="Search transactions…"
@@ -176,7 +176,7 @@ export default function TransactionTable({ transactions, loading, deletingId, on
         <tbody>
           {visible.map(t => (
             <tr key={t.id} style={s.tr}>
-              <td style={{ ...s.td, color: 'rgba(255,255,255,0.4)', fontSize: 12, whiteSpace: 'nowrap' }}>
+              <td style={{ ...s.td, color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>
                 {formatDate(t.date)}
               </td>
               <td style={s.td}>
@@ -191,10 +191,10 @@ export default function TransactionTable({ transactions, loading, deletingId, on
                     </span>
                   </div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: '#e2e8f0' }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-1)' }}>
                       {t.merchantName ?? t.description}
                     </div>
-                    {t.notes && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{t.notes}</div>}
+                    {t.notes && <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>{t.notes}</div>}
                     {t.pending && <div style={{ fontSize: 11, color: '#f59e0b', marginTop: 2 }}>Pending</div>}
                   </div>
                 </div>
@@ -243,48 +243,48 @@ export default function TransactionTable({ transactions, loading, deletingId, on
 
 const s: Record<string, React.CSSProperties> = {
   tableCard: {
-    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+    background: 'var(--surface-1)', border: '1px solid var(--border)',
     borderRadius: 16, padding: '8px 0', overflowX: 'auto',
   },
   toolbar: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '10px 20px 10px', borderBottom: '1px solid rgba(255,255,255,0.05)',
+    padding: '10px 20px 10px', borderBottom: '1px solid var(--input-bg)',
     gap: 12, flexWrap: 'wrap',
   },
-  count: { fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 500, whiteSpace: 'nowrap' },
+  count: { fontSize: 12, color: 'var(--text-3)', fontWeight: 500, whiteSpace: 'nowrap' },
   filters: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   searchWrap: {
     display: 'flex', alignItems: 'center', gap: 7,
-    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+    background: 'var(--input-bg)', border: '1px solid var(--border-strong)',
     borderRadius: 8, padding: '6px 10px', minWidth: 200,
   },
   searchInput: {
     background: 'transparent', border: 'none', outline: 'none',
-    color: '#e2e8f0', fontSize: 13, width: '100%', fontFamily: 'inherit',
+    color: 'var(--text-1)', fontSize: 13, width: '100%', fontFamily: 'inherit',
   },
   clearBtn: {
     background: 'transparent', border: 'none', cursor: 'pointer',
-    color: 'rgba(255,255,255,0.35)', display: 'flex', padding: 0,
+    color: 'var(--text-3)', display: 'flex', padding: 0,
   },
   filterSelect: {
-    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 8, padding: '6px 10px', color: 'rgba(255,255,255,0.7)',
+    background: 'var(--input-bg)', border: '1px solid var(--border-strong)',
+    borderRadius: 8, padding: '6px 10px', color: 'var(--text-2)',
     fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', outline: 'none',
   },
   exportBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '6px 12px', borderRadius: 7,
-    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-    color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+    background: 'var(--input-bg)', border: '1px solid var(--border-strong)',
+    color: 'var(--text-2)', fontSize: 12, fontWeight: 500, cursor: 'pointer',
   },
   table: { width: '100%', borderCollapse: 'collapse' },
   th: {
     textAlign: 'left', padding: '10px 20px', fontSize: 11, fontWeight: 600,
-    color: 'rgba(255,255,255,0.3)', borderBottom: '1px solid rgba(255,255,255,0.06)',
+    color: 'var(--text-3)', borderBottom: '1px solid var(--border)',
     textTransform: 'uppercase', letterSpacing: '0.06em',
   },
-  tr: { borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 0.1s' },
-  td: { padding: '14px 20px', fontSize: 13, color: 'rgba(255,255,255,0.75)' },
+  tr: { borderBottom: '1px solid var(--surface-1)', transition: 'background 0.1s' },
+  td: { padding: '14px 20px', fontSize: 13, color: 'var(--text-2)' },
   txIcon: {
     borderRadius: 10, flexShrink: 0,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -296,19 +296,19 @@ const s: Record<string, React.CSSProperties> = {
   typeBadge: { padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600 },
   deleteBtn: {
     background: 'transparent', border: 'none', cursor: 'pointer',
-    color: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center',
+    color: 'var(--text-3)', display: 'flex', alignItems: 'center',
     padding: 6, borderRadius: 6, transition: 'color 0.15s',
   },
   spinnerSm: {
     width: 14, height: 14, borderRadius: '50%',
-    border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.5)',
+    border: '2px solid var(--border-strong)', borderTopColor: 'var(--text-2)',
     animation: 'spin 0.6s linear infinite',
   },
-  loadMore: { padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' },
+  loadMore: { padding: '12px 20px', borderTop: '1px solid var(--input-bg)', textAlign: 'center' },
   loadMoreBtn: {
-    background: 'transparent', border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 8, color: 'rgba(255,255,255,0.55)', fontSize: 13,
+    background: 'transparent', border: '1px solid var(--border-strong)',
+    borderRadius: 8, color: 'var(--text-2)', fontSize: 13,
     fontWeight: 500, cursor: 'pointer', padding: '8px 18px',
   },
-  loadMoreSub: { color: 'rgba(255,255,255,0.3)', fontSize: 12 },
+  loadMoreSub: { color: 'var(--text-3)', fontSize: 12 },
 };

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { insightApi } from '../services/api';
-import { TransactionRequest } from '../types';
+import { TransactionRequest, InsightsResponse } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import {
   useSummary, useMonthTransactions, usePlaidStatus, usePlaidItems,
@@ -11,27 +11,32 @@ import TransactionTable from '../components/TransactionTable';
 import BudgetPanel from '../components/BudgetPanel';
 import InsightsPanel from '../components/InsightsPanel';
 import TransactionModal from '../components/TransactionModal';
+import VerifyEmailBanner from '../components/VerifyEmailBanner';
 import OverviewTab from '../components/tabs/OverviewTab';
 import AccountsTab from '../components/tabs/AccountsTab';
 import { MONTH_NAMES, SHORT_MONTHS, getTimeOfDay } from '../utils/dashboard';
+import { useTheme } from '../hooks/useTheme';
+import { useIsMobile } from '../hooks/useMediaQuery';
 import { d } from './dashboard.styles';
 import {
   LayoutDashboard, ArrowLeftRight, Target, Sparkles,
   LogOut, Plus, TrendingUp, ChevronLeft, ChevronRight,
-  Landmark, RefreshCw,
+  Landmark, RefreshCw, Sun, Moon,
 } from 'lucide-react';
 
 type Tab = 'overview' | 'transactions' | 'budgets' | 'accounts' | 'insights';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
+  const [theme, toggleTheme] = useTheme();
+  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [showForm, setShowForm] = useState(false);
-  const [insights, setInsights] = useState('');
+  const [insights, setInsights] = useState<InsightsResponse | null>(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
 
   const summaryQuery = useSummary(year, month);
@@ -70,8 +75,10 @@ export default function Dashboard() {
     setActiveTab('insights');
     try {
       const res = await insightApi.getInsights(year, month);
-      setInsights(res.data.insights);
-    } catch { setInsights('Failed to load insights. Please check your connection and try again.'); }
+      setInsights(res.data);
+    } catch {
+      setInsights({ cards: [], narrative: 'Failed to load insights. Please check your connection and try again.' });
+    }
     finally { setLoadingInsights(false); }
   };
 
@@ -94,9 +101,19 @@ export default function Dashboard() {
   const userInitial = user?.name?.charAt(0).toUpperCase() ?? '?';
   const syncing = plaidSync.isPending;
 
+  const themeToggleButton = (
+    <button style={d.logoutBtn} onClick={toggleTheme}
+      title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+      {theme === 'dark'
+        ? <Sun size={16} color="var(--text-3)" />
+        : <Moon size={16} color="var(--text-3)" />}
+    </button>
+  );
+
   return (
     <div style={d.root}>
-      {/* ── Sidebar ── */}
+      {/* ── Sidebar (desktop) ── */}
+      {!isMobile && (
       <aside style={d.sidebar}>
         <div style={d.sidebarTop}>
           <div style={d.logo}>
@@ -109,7 +126,7 @@ export default function Dashboard() {
               return (
                 <button key={key} style={{ ...d.navBtn, ...(active ? d.navBtnActive : {}) }}
                   onClick={() => setActiveTab(key)}>
-                  <span style={{ color: active ? '#818cf8' : 'rgba(255,255,255,0.4)', display: 'flex' }}>{icon}</span>
+                  <span style={{ color: active ? '#818cf8' : 'var(--text-3)', display: 'flex' }}>{icon}</span>
                   <span>{label}</span>
                   {key === 'insights' && <span style={d.aiBadge}>AI</span>}
                 </button>
@@ -125,14 +142,47 @@ export default function Dashboard() {
               <p style={d.userEmail}>{user?.email}</p>
             </div>
           </div>
+          {themeToggleButton}
           <button style={d.logoutBtn} onClick={handleLogout} title="Sign out">
-            <LogOut size={16} color="rgba(255,255,255,0.35)" />
+            <LogOut size={16} color="var(--text-3)" />
           </button>
         </div>
       </aside>
+      )}
+
+      {/* ── Bottom tab bar (mobile) ── */}
+      {isMobile && (
+        <nav style={d.mobileNav}>
+          {navItems.map(({ key, label, icon }) => {
+            const active = activeTab === key;
+            return (
+              <button key={key} style={{ ...d.mobileNavBtn, color: active ? '#818cf8' : 'var(--text-3)' }}
+                onClick={() => setActiveTab(key)}>
+                {icon}
+                <span style={d.mobileNavLabel}>{label === 'AI Insights' ? 'Insights' : label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      )}
 
       {/* ── Main ── */}
-      <main style={d.main}>
+      <main style={{ ...d.main, ...(isMobile ? d.mainMobile : {}) }}>
+        {isMobile && (
+          <div style={d.mobileTopBar}>
+            <div style={d.logo}>
+              <div style={d.logoIcon}><TrendingUp size={18} color="#fff" /></div>
+              <span style={d.logoText}>Tally</span>
+            </div>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {themeToggleButton}
+              <button style={d.logoutBtn} onClick={handleLogout} title="Sign out">
+                <LogOut size={16} color="var(--text-3)" />
+              </button>
+            </div>
+          </div>
+        )}
+        {user && !user.emailVerified && <VerifyEmailBanner />}
         <div style={d.header}>
           <div>
             <h1 style={d.greeting}>

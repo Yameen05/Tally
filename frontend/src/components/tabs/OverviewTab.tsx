@@ -9,6 +9,7 @@ import {
 import { MonthlySummary, Transaction, ConnectedItem } from '../../types';
 import { PALETTE, CATEGORY_ICONS, formatCurrency, formatDate } from '../../utils/dashboard';
 import { d } from '../../pages/dashboard.styles';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 import { Skeleton, EmptyState } from '../common';
 import StatCard from '../StatCard';
 import ConnectBank from '../ConnectBank';
@@ -18,9 +19,9 @@ import RecurringCard from '../RecurringCard';
 function PieTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: '#1a1a35', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '10px 14px' }}>
-      <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 4 }}>{payload[0].name}</p>
-      <p style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>{formatCurrency(payload[0].value)}</p>
+    <div style={{ background: 'var(--tooltip-bg)', border: '1px solid var(--border-strong)', borderRadius: 10, padding: '10px 14px' }}>
+      <p style={{ color: 'var(--text-2)', fontSize: 12, marginBottom: 4 }}>{payload[0].name}</p>
+      <p style={{ color: 'var(--text-1)', fontWeight: 700, fontSize: 15 }}>{formatCurrency(payload[0].value)}</p>
     </div>
   );
 }
@@ -28,9 +29,9 @@ function PieTooltip({ active, payload }: any) {
 function BarTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: '#1a1a35', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '10px 14px' }}>
-      <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 4 }}>{label}</p>
-      <p style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>{payload[0].value.toFixed(1)}%</p>
+    <div style={{ background: 'var(--tooltip-bg)', border: '1px solid var(--border-strong)', borderRadius: 10, padding: '10px 14px' }}>
+      <p style={{ color: 'var(--text-2)', fontSize: 12, marginBottom: 4 }}>{label}</p>
+      <p style={{ color: 'var(--text-1)', fontWeight: 700, fontSize: 15 }}>{payload[0].value.toFixed(1)}%</p>
     </div>
   );
 }
@@ -51,6 +52,7 @@ export default function OverviewTab({
   summary, transactions, loading, plaidConfigured, items,
   onConnected, onViewTransactions, onGetInsights, loadingInsights,
 }: Props) {
+  const isMobile = useIsMobile();
   const pieData = summary
     ? Object.entries(summary.expensesByCategory).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
     : [];
@@ -78,7 +80,7 @@ export default function OverviewTab({
         </div>
       )}
 
-      <div style={d.statsGrid}>
+      <div style={{ ...d.statsGrid, ...(isMobile ? { gridTemplateColumns: 'repeat(2, 1fr)' } : {}) }}>
         <StatCard label="Total Income" value={summary ? formatCurrency(summary.totalIncome) : '$0.00'}
           icon={<TrendingUp size={18} />} color="#10b981" loading={loading} />
         <StatCard label="Total Expenses" value={summary ? formatCurrency(summary.totalExpenses) : '$0.00'}
@@ -89,7 +91,7 @@ export default function OverviewTab({
           icon={<ArrowLeftRight size={18} />} color="#6366f1" loading={loading} />
       </div>
 
-      <div style={d.chartsRow}>
+      <div style={{ ...d.chartsRow, ...(isMobile ? { gridTemplateColumns: '1fr' } : {}) }}>
         <div style={d.chartCard}>
           <h3 style={d.chartTitle}>Expenses by Category</h3>
           {loading ? (
@@ -133,12 +135,12 @@ export default function OverviewTab({
           ) : (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={barData} layout="vertical" margin={{ left: 0, right: 16 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-                <XAxis type="number" domain={[0, 100]} tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }}
+                <CartesianGrid strokeDasharray="3 3" stroke="#8a8ca833" horizontal={false} />
+                <XAxis type="number" domain={[0, 100]} tick={{ fill: '#8a8ca8', fontSize: 11 }}
                   axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
-                <YAxis type="category" dataKey="category" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 12 }}
+                <YAxis type="category" dataKey="category" tick={{ fill: '#8a8ca8', fontSize: 12 }}
                   width={88} axisLine={false} tickLine={false} />
-                <Tooltip content={<BarTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                <Tooltip content={<BarTooltip />} cursor={{ fill: '#8a8ca81f' }} />
                 <Bar dataKey="percentageUsed" radius={[0, 6, 6, 0]} maxBarSize={14}>
                   {barData.map((entry, i) => (
                     <Cell key={i} fill={entry.percentageUsed > 90 ? '#ef4444' : entry.percentageUsed > 70 ? '#f59e0b' : '#6366f1'} />

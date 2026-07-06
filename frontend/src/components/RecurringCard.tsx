@@ -28,8 +28,8 @@ export default function RecurringCard() {
           <Repeat size={13} style={{ marginRight: 6, verticalAlign: '-2px' }} />
           Recurring & Subscriptions
         </h3>
-        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
-          ≈ <strong style={{ color: '#e2e8f0' }}>{formatCurrency(monthlyTotal)}</strong>/mo
+        <span style={{ fontSize: 13, color: 'var(--text-2)' }}>
+          ≈ <strong style={{ color: 'var(--text-1)' }}>{formatCurrency(monthlyTotal)}</strong>/mo
         </span>
       </div>
       <div style={d.recentList}>
@@ -58,7 +58,7 @@ export default function RecurringCard() {
                 {CADENCE_LABEL[item.cadence]} · next {formatDate(item.nextDueDate)}
               </span>
             </div>
-            <span style={{ ...d.txAmt, color: '#e2e8f0' }}>{formatCurrency(item.lastAmount)}</span>
+            <span style={{ ...d.txAmt, color: 'var(--text-1)' }}>{formatCurrency(item.lastAmount)}</span>
           </div>
         ))}
       </div>

@@ -85,6 +85,15 @@ public class RefreshTokenService {
         return new RotationResult(token.getUser(), issue(token.getUser()));
     }
 
+    /** Kills every active session for a user, e.g. after a password reset. */
+    @Transactional
+    public void revokeAllForUser(Long userId) {
+        int revoked = refreshTokenRepository.revokeAllForUser(userId, LocalDateTime.now());
+        if (revoked > 0) {
+            log.info("Revoked {} refresh tokens for user {}", revoked, userId);
+        }
+    }
+
     /** Revokes the presented token if it exists. Safe to call with garbage input. */
     @Transactional
     public void revoke(String rawToken) {

@@ -69,7 +69,7 @@ export default function TransactionModal({ onClose, onSubmit, submitting }: Prop
               onBlur={e => Object.assign(e.target.style, formInputBlur)} />
           </div>
           <div style={d.formField}>
-            <label style={d.formLabel}>Notes <span style={{ color: 'rgba(255,255,255,0.25)' }}>(optional)</span></label>
+            <label style={d.formLabel}>Notes <span style={{ color: 'var(--text-3)' }}>(optional)</span></label>
             <textarea style={{ ...d.formInput, resize: 'none' }} placeholder="Any extra details…" rows={2}
               value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
           </div>

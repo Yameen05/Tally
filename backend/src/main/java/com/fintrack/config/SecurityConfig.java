@@ -46,6 +46,9 @@ public class SecurityConfig {
                 // would mask every error as a 403.
                 .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                 .requestMatchers("/api/auth/**", "/api/plaid/webhook", "/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
+                // Liveness probe for load balancers and CI; detail exposure is
+                // controlled per-profile via management.endpoint.health.show-details.
+                .requestMatchers("/actuator/health").permitAll()
                 .anyRequest().authenticated()
             )
             .headers(headers -> headers

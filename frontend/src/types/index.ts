@@ -40,6 +40,7 @@ export interface User {
   userId: number;
   name: string;
   email: string;
+  emailVerified: boolean;
 }
 
 /** Response from login/register/refresh; token is the short-lived access token. */
@@ -48,6 +49,7 @@ export interface AuthResponse {
   name: string;
   email: string;
   userId: number;
+  emailVerified: boolean;
 }
 
 export type Cadence = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
@@ -70,6 +72,20 @@ export interface NetWorthPoint {
   assets: number;
   liabilities: number;
   netWorth: number;
+}
+
+export type InsightKind = 'TREND' | 'WIN' | 'WATCH' | 'INFO';
+
+export interface InsightCard {
+  kind: InsightKind;
+  title: string;
+  detail: string;
+  deltaPct: number | null;
+}
+
+export interface InsightsResponse {
+  cards: InsightCard[];
+  narrative: string;
 }
 
 export interface ConnectedAccount {

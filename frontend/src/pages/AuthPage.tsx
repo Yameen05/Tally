@@ -7,6 +7,8 @@ import { TrendingUp, Shield, Zap, PieChart, Eye, EyeOff } from 'lucide-react';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,6 +21,11 @@ export default function AuthPage() {
     setError('');
     setLoading(true);
     try {
+      if (forgotMode) {
+        await authApi.forgotPassword(form.email);
+        setForgotSent(true);
+        return;
+      }
       const res = isLogin
         ? await authApi.login({ email: form.email, password: form.password })
         : await authApi.register(form);
@@ -82,17 +89,29 @@ export default function AuthPage() {
       <div style={s.right}>
         <div style={s.card}>
           <div style={s.cardHeader}>
-            <h2 style={s.cardTitle}>{isLogin ? 'Welcome back' : 'Create account'}</h2>
+            <h2 style={s.cardTitle}>
+              {forgotMode ? 'Reset your password' : isLogin ? 'Welcome back' : 'Create account'}
+            </h2>
             <p style={s.cardSub}>
-              {isLogin ? "Don't have an account? " : 'Already have one? '}
-              <button style={s.switchBtn} onClick={() => { setIsLogin(!isLogin); setError(''); }}>
-                {isLogin ? 'Sign up' : 'Sign in'}
+              {forgotMode ? 'Remembered it after all? ' : isLogin ? "Don't have an account? " : 'Already have one? '}
+              <button style={s.switchBtn} onClick={() => {
+                if (forgotMode) { setForgotMode(false); setForgotSent(false); }
+                else setIsLogin(!isLogin);
+                setError('');
+              }}>
+                {forgotMode ? 'Sign in' : isLogin ? 'Sign up' : 'Sign in'}
               </button>
             </p>
           </div>
 
+          {forgotSent ? (
+            <div style={s.successBox}>
+              If an account exists for <strong>{form.email}</strong>, a reset link is on its way.
+              The link is valid for 1 hour — check your inbox.
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} style={s.form}>
-            {!isLogin && (
+            {!isLogin && !forgotMode && (
               <div style={s.field}>
                 <label style={s.label}>Full Name</label>
                 <input
@@ -121,6 +140,7 @@ export default function AuthPage() {
               />
             </div>
 
+            {!forgotMode && (
             <div style={s.field}>
               <label style={s.label}>Password</label>
               <div style={s.passwordWrap}>
@@ -142,7 +162,14 @@ export default function AuthPage() {
                   {showPassword ? <EyeOff size={16} color="rgba(255,255,255,0.4)" /> : <Eye size={16} color="rgba(255,255,255,0.4)" />}
                 </button>
               </div>
+              {isLogin && (
+                <button type="button" style={s.forgotBtn}
+                  onClick={() => { setForgotMode(true); setError(''); }}>
+                  Forgot password?
+                </button>
+              )}
             </div>
+            )}
 
             {error && (
               <div style={s.errorBox}>
@@ -155,13 +182,14 @@ export default function AuthPage() {
               {loading ? (
                 <span style={s.loadingRow}>
                   <span style={s.spinner} />
-                  {isLogin ? 'Signing in…' : 'Creating account…'}
+                  {forgotMode ? 'Sending…' : isLogin ? 'Signing in…' : 'Creating account…'}
                 </span>
               ) : (
-                isLogin ? 'Sign in' : 'Create account'
+                forgotMode ? 'Send reset link' : isLogin ? 'Sign in' : 'Create account'
               )}
             </button>
           </form>
+          )}
         </div>
       </div>
     </div>
@@ -237,6 +265,17 @@ const s: Record<string, React.CSSProperties> = {
     color: '#fca5a5', fontSize: 13,
   },
   errorDot: { width: 6, height: 6, borderRadius: '50%', background: '#ef4444', flexShrink: 0 },
+  forgotBtn: {
+    background: 'none', border: 'none', color: 'rgba(255,255,255,0.45)',
+    cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: 0,
+    alignSelf: 'flex-end', marginTop: 8, textDecoration: 'underline',
+    textDecorationColor: 'rgba(255,255,255,0.2)',
+  },
+  successBox: {
+    padding: '14px 16px', borderRadius: 10,
+    background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)',
+    color: '#6ee7b7', fontSize: 14, lineHeight: 1.6,
+  },
   submitBtn: {
     width: '100%', padding: '13px', borderRadius: 10, border: 'none',
     background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',

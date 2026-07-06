@@ -24,7 +24,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     refreshSession().then((session) => {
       if (cancelled) return;
       if (session) {
-        setUser({ userId: session.userId, name: session.name, email: session.email });
+        setUser({
+          userId: session.userId, name: session.name,
+          email: session.email, emailVerified: session.emailVerified,
+        });
       }
       setInitializing(false);
     });
@@ -43,7 +46,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = (session: AuthResponse) => {
     setAccessToken(session.token);
-    setUser({ userId: session.userId, name: session.name, email: session.email });
+    setUser({
+      userId: session.userId, name: session.name,
+      email: session.email, emailVerified: session.emailVerified,
+    });
   };
 
   const logout = () => {
