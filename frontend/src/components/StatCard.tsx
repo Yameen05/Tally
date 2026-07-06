@@ -22,7 +22,7 @@ export default function StatCard({ label, value, icon, color, loading }: Props) 
 
 const s: Record<string, React.CSSProperties> = {
   card: {
-    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+    background: 'var(--surface-1)', border: '1px solid var(--border)',
     borderRadius: 16, padding: '20px 22px',
   },
   iconWrap: {
@@ -30,8 +30,8 @@ const s: Record<string, React.CSSProperties> = {
     display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14,
   },
   label: {
-    fontSize: 12, color: 'rgba(255,255,255,0.45)', fontWeight: 500,
+    fontSize: 12, color: 'var(--text-3)', fontWeight: 500,
     marginBottom: 6, letterSpacing: '0.03em', textTransform: 'uppercase',
   },
-  value: { fontSize: 24, fontWeight: 700, color: '#f1f5f9', letterSpacing: '-0.5px' },
+  value: { fontSize: 24, fontWeight: 700, color: 'var(--text-1)', letterSpacing: '-0.5px' },
 };

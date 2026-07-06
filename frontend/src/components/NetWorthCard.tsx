@@ -7,10 +7,10 @@ function NetWorthTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const point = payload[0].payload;
   return (
-    <div style={{ background: '#1a1a35', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '10px 14px' }}>
-      <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 4 }}>{point.date}</p>
-      <p style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>{formatCurrency(point.netWorth)}</p>
-      <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, marginTop: 4 }}>
+    <div style={{ background: 'var(--tooltip-bg)', border: '1px solid var(--border-strong)', borderRadius: 10, padding: '10px 14px' }}>
+      <p style={{ color: 'var(--text-2)', fontSize: 12, marginBottom: 4 }}>{point.date}</p>
+      <p style={{ color: 'var(--text-1)', fontWeight: 700, fontSize: 15 }}>{formatCurrency(point.netWorth)}</p>
+      <p style={{ color: 'var(--text-3)', fontSize: 11, marginTop: 4 }}>
         Assets {formatCurrency(point.assets)} · Debts {formatCurrency(point.liabilities)}
       </p>
     </div>
@@ -36,7 +36,7 @@ export default function NetWorthCard() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
         <h3 style={{ ...d.chartTitle, marginBottom: 0 }}>Net Worth</h3>
         <div style={{ textAlign: 'right' }}>
-          <span style={{ fontSize: 20, fontWeight: 700, color: '#f1f5f9', fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-1)', fontVariantNumeric: 'tabular-nums' }}>
             {formatCurrency(current.netWorth)}
           </span>
           {points.length > 1 && (
@@ -54,9 +54,9 @@ export default function NetWorthCard() {
               <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <XAxis dataKey="date" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }}
+          <XAxis dataKey="date" tick={{ fill: '#8a8ca8', fontSize: 11 }}
             axisLine={false} tickLine={false} minTickGap={40} />
-          <YAxis tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} axisLine={false} tickLine={false}
+          <YAxis tick={{ fill: '#8a8ca8', fontSize: 11 }} axisLine={false} tickLine={false}
             tickFormatter={(v: number) => `$${Math.round(v / 1000)}k`} width={44} domain={['auto', 'auto']} />
           <Tooltip content={<NetWorthTooltip />} />
           <Area type="monotone" dataKey="netWorth" stroke="#818cf8" strokeWidth={2}

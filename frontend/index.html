@@ -3,33 +3,76 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#070714" />
     <title>Tally — Smart Finance</title>
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script>
+      // Apply the saved theme before first paint to avoid a flash.
+      (function () {
+        if (localStorage.getItem('tally-theme') === 'light') {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
     <style>
+      :root {
+        --bg: #070714;
+        --sidebar-bg: rgba(255, 255, 255, 0.025);
+        --surface-1: rgba(255, 255, 255, 0.04);
+        --surface-2: #0f0f24;
+        --tooltip-bg: #1a1a35;
+        --input-bg: rgba(255, 255, 255, 0.05);
+        --border: rgba(255, 255, 255, 0.08);
+        --border-strong: rgba(255, 255, 255, 0.12);
+        --text-1: #f1f5f9;
+        --text-2: rgba(255, 255, 255, 0.6);
+        --text-3: rgba(255, 255, 255, 0.38);
+        --hover-row: rgba(255, 255, 255, 0.02);
+        --scrollbar: rgba(255, 255, 255, 0.12);
+      }
+      [data-theme='light'] {
+        --bg: #f3f4fa;
+        --sidebar-bg: #ffffff;
+        --surface-1: #ffffff;
+        --surface-2: #ffffff;
+        --tooltip-bg: #ffffff;
+        --input-bg: #eef0f7;
+        --border: #e2e4f0;
+        --border-strong: #d2d5e6;
+        --text-1: #16182b;
+        --text-2: #494c66;
+        --text-3: #7e8199;
+        --hover-row: rgba(20, 22, 50, 0.03);
+        --scrollbar: rgba(20, 22, 50, 0.18);
+      }
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       html { font-size: 16px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-      body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #070714; color: #fff; }
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: var(--bg); color: var(--text-1);
+        transition: background 0.2s ease;
+      }
       ::-webkit-scrollbar { width: 6px; height: 6px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
-      ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+      ::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 3px; }
       input:-webkit-autofill,
       input:-webkit-autofill:hover,
       input:-webkit-autofill:focus {
-        -webkit-text-fill-color: #fff;
-        -webkit-box-shadow: 0 0 0px 1000px #1a1a35 inset;
+        -webkit-text-fill-color: var(--text-1);
+        -webkit-box-shadow: 0 0 0px 1000px var(--tooltip-bg) inset;
         transition: background-color 5000s ease-in-out 0s;
       }
       button { font-family: inherit; }
-      select option { background: #1a1a35; color: #fff; }
+      select option { background: var(--tooltip-bg); color: var(--text-1); }
       @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
       @keyframes slideIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
       @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
       @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       .fade-in { animation: fadeIn 0.25s ease forwards; }
-      table tr:hover { background: rgba(255,255,255,0.02); }
+      table tr:hover { background: var(--hover-row); }
       button:not(:disabled):hover { filter: brightness(1.08); }
       a { color: #818cf8; }
     </style>

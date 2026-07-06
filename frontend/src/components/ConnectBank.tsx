@@ -93,9 +93,9 @@ const s: Record<string, React.CSSProperties> = {
   secondary: {
     display: 'inline-flex', alignItems: 'center', gap: 8,
     padding: '9px 16px', borderRadius: 9,
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    color: '#e2e8f0', fontWeight: 500, fontSize: 13, cursor: 'pointer',
+    background: 'var(--input-bg)',
+    border: '1px solid var(--border-strong)',
+    color: 'var(--text-1)', fontWeight: 500, fontSize: 13, cursor: 'pointer',
   },
   errorText: {
     color: '#fca5a5', fontSize: 13, marginTop: 10,

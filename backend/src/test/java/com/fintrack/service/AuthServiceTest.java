@@ -34,6 +34,8 @@ class AuthServiceTest {
     @Mock private UserDetailsServiceImpl userDetailsService;
     @Mock private RefreshTokenService refreshTokenService;
     @Mock private com.fintrack.security.LoginAttemptService loginAttemptService;
+    @Mock private AccountTokenService accountTokenService;
+    @Mock private MailService mailService;
 
     @InjectMocks
     private AuthService authService;
