@@ -17,12 +17,6 @@ backend.log
 .vscode/
 *.iml
 
-# Local agent/tool state
-.claude/
-.claude-flow/
-.swarm/
-ruvector.db
-
 # Env files (NEVER commit real secrets)
 .env
 .env.*
